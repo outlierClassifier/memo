@@ -41,6 +41,12 @@ matches:
   - regex: "(?i)UPM"
     replace: "\\ac{UPM}"
 
+  - regex: "(?i)ocsvm"
+    replace: "\\ac{OC-SVM}"
+
+  - regex: "(?i)svm"
+    replace: "\\ac{SVM}"
+
   - regex: "(?i)yaml"
     replace: "\\ac{YAML}"
 
