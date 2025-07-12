@@ -8,11 +8,32 @@ Inside the tokamak, plasma will be heated to extremely high temperatures, allowi
 
 A \textit{Discharge} is a plasma operation in the tokamak, where the plasma is created and maintained for a certain period. Each discharge is characterized by various parameters, such as plasma current, inductance, density, radiated power or input power. When these parameters deviate from their expected values, it can indicate potential issues or anomalies in the reactor's operation.
 
-A \textit{Disruption} is an event that occurs when the plasma becomes unstable and loses confinement, leading to a rapid cooling of the plasma and a loss of control. For this project, discharges are classified as either normal or anomalous.
+A \textit{Disruption} is an event that occurs when the plasma becomes unstable and loses confinement, leading to a rapid cooling of the plasma and a loss of control. For this project, discharges are classified as either disruptive or non-disruptive.
 
-A \textit{Campaign} is a set of discharges that are analyzed together. For this project, there are three campaigns available, each containing a different number of discharges.
+A \textit{Campaign} is a set of discharges that are analyzed together. For this project, there are three campaigns available, each containing a different number of discharges. The available data for the project is summarized in \autoref{tab:campaigns}.
 
-A visual representation of the plasma current on several discharges is shown in \autoref{fig:plasma-current}. This figure illustrates the singular bathtub shape of non-disruptive discharges, whereas disruptive discharges show a more erratic and not consistent pattern.
+\begin{table}[htbp]
+    \centering
+    \caption{Available data for the project}
+    \begin{tabular}{
+        l
+        S[table-format=3]  % Number of discharges
+        S[table-format=2]  % Disruptive
+        S[table-format=3]  % Non Disruptive
+        S[table-format=1.2]@{\,}  % Rate
+    }
+    \toprule
+    \textbf{Campaign} & \textbf{Discharges} & \textbf{Disruptive} & \textbf{Non--Disruptive} & \textbf{Disruptive Rate} \\
+    \midrule
+    C23 & 522 & 32 & 490 & 6.13 \ \% \\
+    C24 & 388 & 26 & 362 & 6.70 \ \% \\
+    C25 & 611 & 41 & 570 & 6.71 \ \% \\
+    \bottomrule
+    \end{tabular}
+    \label{tab:campaigns}
+\end{table}
+
+A visual representation of the plasma current on several discharges is shown in \autoref{fig:plasma-current}. This figure illustrates the singular bathtub shape of non-disruptive discharges, whereas disruptive discharges show a more erratic pattern.
 
 \begin{figure}[H]
     \centering
@@ -27,8 +48,32 @@ Anomaly detection in nuclear fusion is crucial for ensuring the safe and efficie
 
 To address this challenge, various machine learning techniques have been applied to analyze the data generated during discharges. These techniques aim to identify patterns and deviations in the data that may indicate potential anomalies. An early detection of these anomalies is essential to prevent disruptions and ensure the stability of the plasma, using gas injection to stop the nuclear fusion reaction before it causes damage to the reactor.
 
-\section{Current implementation}
+\subsection{Current implementation}
 
 The current implementation is based on a \ac{SVM} model trained on historical discharge data. The model is designed to classify discharges as normal or anomalous based on the input parameters. The training process involves using labeled data, where each discharge is categorized as either normal or anomalous.
 
-\ac{SVM} is a machine learning whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. On the training phase, the model receives entire discharges as input, and the category of the discharge. The model divides data in windows of 32 milliseconds, and extracts the mean value and the \ac{FFT} of each window.
+\ac{SVM} is a machine learning algorithm whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. On the training phase, the model receives entire discharges as input, and the category of the discharge. The model divides data in windows of 32 milliseconds, and extracts the mean value and the \ac{FFT} of each window. On the prediction phase, the model receives a data stream, and fills a buffer to create a window. Then, it extracts the same features as in the training phase, and predicts the category of this window.
+
+There are some limitations to this approach. First, a window-based approach does not take into account the temporal dependencies of the data. This means that the model may not be able to capture the dynamics of the plasma behavior over time. Second, \ac{SVM} models with non-linear kernels have a complexity between $O(n^2)$ and $O(n^3)$, where $n$ is the number of training samples. This means that the model may not be able to scale to large datasets \autocite{kekulawalaSupportVectorMachines2024}. Third, even though \ac{SVM} models do not require a balanced dataset, the model could be biased towards the majority class, leading to a high false negative rate \autocite{10.1007/978-3-540-30115-8_7}. This is particularly important in this project, as the number of non-disruptive discharges is much higher than the number of disruptive discharges, as shown in \autoref{tab:campaigns}.
+
+\section{Alternative approaches}
+
+This project aims to explore alternative approaches to anomaly detection in nuclear fusion, focusing on the use of other \ac{ML} algorithms. Models used in this project can be grouped into three categories: decision trees based models, machine vector support based models and neural networks based models.
+
+\todo{Algo parecido al word con la explicación de cada modelo}
+\subsection{Decision Trees based models}
+
+Decision trees are a type of \ac{ML} algorithm that uses a tree-like structure to make decisions based on the input data. They are easy to interpret and can handle both categorical and numerical data. 
+
+\todo{XGBoost e IForest}
+
+\subsection{Machine Vector Support based models}
+
+\ac{SVM} is a well-known algorithm in this category, but there are other algorithms that can be used as well. For example, \ac{OC-SVM} is a variant of \ac{SVM} that is trained on a single class of data (non-disruptive discharges), and generates a decision boundary that separates the normal data from the anomalies. This approach is particularly useful when the dataset highly imbalanced.
+
+\todo{SVM, OC-SVM}
+
+\subsection{Neural Networks based models}
+% LSTM & CNN
+
+\todo{LSTM, CNN, Autoencoders}
