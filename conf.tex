@@ -1,0 +1,154 @@
+\documentclass[12pt,a4paper,openright,twoside]{report}
+
+\usepackage{babel}
+\usepackage[T1]{fontenc}
+
+\usepackage{graphicx}
+\graphicspath{ {img/} }
+
+\usepackage{amsmath}
+\usepackage{acronym}
+
+% Geometry and microtype packages
+\usepackage[
+    a4paper,
+    top=2cm,
+    bottom=2cm,
+    left=3cm,
+    right=3cm,
+    marginparwidth=1.75cm,
+    inner=4cm,
+    outer=2cm,
+    heightrounded,
+    ]{geometry}
+\usepackage[protrusion=false, expansion=true]{microtype}
+
+% Hyperref package for clickable links
+\usepackage[hyphens]{url}
+\usepackage{xurl}
+\usepackage[
+    breaklinks,
+    pdfpagelabels,
+    colorlinks=true,
+    allcolors=black
+]{hyperref}
+
+% Bibliography management packages
+\usepackage[style=ieee]{biblatex}
+\DeclareFieldFormat{howpublished}{\url{#1}}
+% \usepackage{csquotes}
+\addbibresource{export.bib}
+\setcounter{biburlnumpenalty}{9000}
+\setcounter{biburllcpenalty}{9000} 
+\setcounter{biburlucpenalty}{9000} 
+
+% Font packages
+\usepackage{listingsutf8}
+\usepackage{pxfonts,fix-cm}
+\usepackage{accsupp} % For non-copyable text (code numbering)
+\newcommand{\noncopynumber}[1]{%
+    \BeginAccSupp{method=escape,ActualText={}}%
+    #1%
+    \EndAccSupp{}%
+}
+
+\usepackage[table]{xcolor}
+\definecolor{sviolet}{HTML}{6C71C4}
+\definecolor{sbase1}{HTML}{93A1A1}
+\definecolor{sblue}{HTML}{268BD2}
+\definecolor{scyan}{HTML}{2AA198}
+\definecolor{sbase00}{HTML}{657B83}
+\lstset{
+    inputencoding=utf8/latin1,
+    language=Java, 
+    columns=fullflexible,
+    keepspaces=true,
+    sensitive=true,
+    aboveskip=\baselineskip,
+    belowskip=\baselineskip,
+    frame=lines,
+    xleftmargin=\parindent,
+    belowcaptionskip=1\baselineskip,
+    basicstyle=\color{sbase00}\ttfamily,
+    keywordstyle=\color{scyan},
+    commentstyle=\color{sbase1},
+    stringstyle=\color{sblue},
+    numberstyle=\color{sviolet},
+    identifierstyle=\color{sbase00},
+    breaklines=true,
+    showstringspaces=false,
+    tabsize=2
+}
+
+\lstdefinestyle{mystyle}{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    columns=fullflexible,
+    frame=single,
+    captionpos=b,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    numberstyle=\tiny,
+    numbers=left,
+    stepnumber=1,
+    numbersep=5pt
+}
+
+\usepackage{float}
+\usepackage{parskip}
+\usepackage[hypcap=true]{caption}
+\usepackage{chngcntr}
+\usepackage{listings, listings-rust}
+\counterwithout{figure}{chapter}
+\counterwithout{footnote}{chapter}
+\counterwithout{table}{chapter}
+\AtBeginDocument{
+    \counterwithout{lstlisting}{chapter}
+    \renewcommand{\thetable}{\arabic{table}}
+    \renewcommand{\thelstlisting}{\arabic{lstlisting}}
+}
+\usepackage{awesomebox}
+\setlength{\parskip}{6pt}
+\setlength{\parindent}{0pt}
+
+\usepackage{tikz}
+\usepackage{changepage}
+\usepackage{afterpage}
+
+\definecolor{color_29791}{rgb}{0,0,0}
+\definecolor{color_104998}{rgb}{0.290196,0.494118,0.733333}
+\definecolor{AzulCeleste}{RGB}{31, 130, 192}
+
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{todonotes}
+\usepackage{siunitx}
+\usepackage{multirow}
+
+\lstset{
+  inputencoding=utf8,
+  extendedchars=true,
+  literate=
+    {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+    {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+    {ñ}{{\~n}}1 {Ñ}{{\~N}}1
+}
+
+% \usepackage{tocloft}
+
+% \setlength{\cftbeforefigskip}{0pt}
+% \setlength{\cftbeforetabskip}{0pt}
+
+
+% \usepackage{etoolbox}
+
+% \makeatletter
+% \patchcmd{\l@figure}{\addvspace{10\p@}}{}{}{}
+% \patchcmd{\l@table}{\addvspace{10\p@}}{}{}{}
+% \makeatother
+
+% \usepackage{latexsym} 
+% \usepackage[none]{hyphenat}

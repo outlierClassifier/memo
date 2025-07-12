@@ -1,0 +1,64 @@
+\input{conf.tex}
+
+\newcommand{\pfg}{Proyecto Fin de Grado }
+
+\title{Outlier Detection System}
+\author{Rubén Agustín González}
+
+\raggedbottom
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+    \thispagestyle{empty}
+    \input{chapters/portada}
+\end{titlepage}
+\pagenumbering{Roman}
+
+\newpage
+% Resumen (obligatorio)
+\begin{abstract}
+    \input{chapters/abstract-sp.tex}
+\end{abstract}
+\renewcommand{\abstractname}{Abstract}
+\newpage
+% Abstract (obligatorio)
+\vspace{10cm}
+\begin{abstract}
+    \input{chapters/abstract-en.tex}
+\end{abstract}
+
+\chapter*{Agradecimientos}
+
+
+\hypersetup{pageanchor=false}
+\hypersetup{linkcolor=black}
+\tableofcontents
+
+\listoffigures
+\listoftables
+\lstlistoflistings
+
+\input{chapters/achronym.tex}
+
+% Contenidos
+\pagenumbering{arabic}
+
+\input{chapters/cap1-intro.tex}
+\input{chapters/cap2-stateofart.tex}
+\input{chapters/cap3-devel.tex}
+\input{chapters/cap4-budget.tex}
+\input{chapters/cap5-impact.tex}
+
+% Conclusiones (obligatorio)
+\input{chapters/cap6-conclusions.tex}
+
+\label{sec:bibliografía}
+\printbibliography
+
+% Anexo (obligatorio)
+\appendix
+\label{sec:apendice}
+
+\end{document}
