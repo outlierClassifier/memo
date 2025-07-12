@@ -25,21 +25,42 @@ jobs:
       - name: ✅ Checkout repo
         uses: actions/checkout@v4
 
-      - name: 📄 Compile LaTeX
+      - name: 📄 Compile LaTeX (Digital Version)
         uses: xu-cheng/latex-action@v3
         with:
           root_file: main.tex
 
-      - name: 📤 Upload PDF as separate artifact
+      - name: 🔄 Rename digital version
+        run: mv main.pdf main-digital.pdf
+
+      - name: 📄 Prepare print version config
+        run: |
+          # Uncomment the inner/outer margin lines for print version
+          sed -i 's/% inner=4cm,/inner=4cm,/' conf.tex
+          sed -i 's/% outer=2cm,/outer=2cm,/' conf.tex
+
+      - name: 📄 Compile LaTeX (Print Version)
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+
+      - name: 🔄 Rename print version
+        run: mv main.pdf main-print.pdf
+
+      - name: 📤 Upload PDFs as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: main-pdf
-          path: main.pdf
+          name: pdf-files
+          path: |
+            main-digital.pdf
+            main-print.pdf
 
       - name: 📂 Prepare deployment folder
         run: |
           mkdir public
-          cp main.pdf public/index.pdf
+          cp main-digital.pdf public/digital.pdf
+          cp main-print.pdf public/print.pdf
+          cp main-digital.pdf public/index.pdf
 
           # Commit information to display the version
           COMMIT_SHA=$(git rev-parse --short HEAD)
@@ -138,18 +159,24 @@ jobs:
                   <span class="fw-bold">Anomaly detection system memo</span>
                 </a>
                 <div class="desktop-download ms-auto">
-                  <a href="index.pdf" class="btn btn-primary" download>
-                    <i class="fas fa-download me-2"></i>Download PDF
+                  <a href="digital.pdf" class="btn btn-primary me-2" download>
+                    <i class="fas fa-desktop me-2"></i>Digital Version
+                  </a>
+                  <a href="print.pdf" class="btn btn-outline-primary" download>
+                    <i class="fas fa-print me-2"></i>Print Version
                   </a>
                 </div>
               </div>
             </nav>
 
-            <!-- Download button for mobile -->
+            <!-- Download buttons for mobile -->
             <div class="container mb-4 text-center">
               <div class="mobile-download">
-                <a href="index.pdf" class="btn btn-primary btn-lg" download>
-                  <i class="fas fa-download me-2"></i>Download PDF
+                <a href="digital.pdf" class="btn btn-primary btn-lg me-2" download>
+                  <i class="fas fa-desktop me-2"></i>Digital Version
+                </a>
+                <a href="print.pdf" class="btn btn-outline-primary btn-lg" download>
+                  <i class="fas fa-print me-2"></i>Print Version
                 </a>
               </div>
             </div>
