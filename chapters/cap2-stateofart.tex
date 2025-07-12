@@ -12,6 +12,15 @@ A \textit{Disruption} is an event that occurs when the plasma becomes unstable a
 
 A \textit{Campaign} is a set of discharges that are analyzed together. For this project, there are three campaigns available, each containing a different number of discharges.
 
+A visual representation of the plasma current on several discharges is shown in \autoref{fig:plasma-current}. This figure illustrates the singular bathtub shape of non-disruptive discharges, whereas disruptive discharges show a more erratic and not consistent pattern.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plasma-current.png}
+    \caption{Plasma current on disruptive and non-disruptive discharges}
+    \label{fig:plasma-current}
+\end{figure}
+
 \section{Anomaly Detection in Nuclear Fusion}
 
 Anomaly detection in nuclear fusion is crucial for ensuring the safe and efficient operation of reactors like \ac{ITER}. The complexity of the plasma behavior and the multitude of parameters involved make it challenging to monitor and control the system effectively. Anomalies can lead to disruptions, which can damage the reactor components and affect the overall performance.
@@ -22,4 +31,4 @@ To address this challenge, various machine learning techniques have been applied
 
 The current implementation is based on a \ac{SVM} model trained on historical discharge data. The model is designed to classify discharges as normal or anomalous based on the input parameters. The training process involves using labeled data, where each discharge is categorized as either normal or anomalous.
 
-\ac{SVM} is a machine learning whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}
+\ac{SVM} is a machine learning whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. On the training phase, the model receives entire discharges as input, and the category of the discharge. The model divides data in windows of 32 milliseconds, and extracts the mean value and the \ac{FFT} of each window.
