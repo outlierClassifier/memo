@@ -139,7 +139,7 @@ jobs:
                 </a>
                 <div class="desktop-download ms-auto">
                   <a href="index.pdf" class="btn btn-primary" download>
-                    <i class="fas fa-download me-2"></i>Descargar PDF
+                    <i class="fas fa-download me-2"></i>Download PDF
                   </a>
                 </div>
               </div>
@@ -149,7 +149,7 @@ jobs:
             <div class="container mb-4 text-center">
               <div class="mobile-download">
                 <a href="index.pdf" class="btn btn-primary btn-lg" download>
-                  <i class="fas fa-download me-2"></i>Descargar PDF
+                  <i class="fas fa-download me-2"></i>Download PDF
                 </a>
               </div>
             </div>
