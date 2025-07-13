@@ -52,20 +52,27 @@ To address this challenge, various machine learning techniques have been applied
 
 The current implementation is based on a \ac{SVM} model trained on historical discharge data. The model is designed to classify discharges as normal or anomalous based on the input parameters. The training process involves using labeled data, where each discharge is categorized as either normal or anomalous.
 
-\ac{SVM} is a machine learning algorithm whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. On the training phase, the model receives entire discharges as input, and the category of the discharge. The model divides data in windows of 32 milliseconds, and extracts the mean value and the \ac{FFT} of each window. On the prediction phase, the model receives a data stream, and fills a buffer to create a window. Then, it extracts the same features as in the training phase, and predicts the category of this window.
+\ac{SVM} is a machine learning algorithm whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. On the training phase, the model receives entire discharges as input, and the category of the discharge. Then, it divides data in windows of 32 milliseconds, and extracts the mean value and the \ac{FFT} of each window. On the prediction phase, the model receives a data stream, and fills a buffer to create a window. Then, it extracts the same features as in the training phase, and predicts the category of this window. If the model predicts an anomalous window, the discharge is classified as anomalous. This classification shall be done before the disruption occurs.
 
 There are some limitations to this approach. First, a window-based approach does not take into account the temporal dependencies of the data. This means that the model may not be able to capture the dynamics of the plasma behavior over time. Second, \ac{SVM} models with non-linear kernels have a complexity between $O(n^2)$ and $O(n^3)$, where $n$ is the number of training samples. This means that the model may not be able to scale to large datasets \autocite{kekulawalaSupportVectorMachines2024}. Third, even though \ac{SVM} models do not require a balanced dataset, the model could be biased towards the majority class, leading to a high false negative rate \autocite{10.1007/978-3-540-30115-8_7}. This is particularly important in this project, as the number of non-disruptive discharges is much higher than the number of disruptive discharges, as shown in \autoref{tab:campaigns}.
 
 \section{Alternative approaches}
 
-This project aims to explore alternative approaches to anomaly detection in nuclear fusion, focusing on the use of other \ac{ML} algorithms. Models used in this project can be grouped into three categories: decision trees based models, machine vector support based models and neural networks based models.
+This project aims to explore alternative approaches to anomaly detection in nuclear fusion, focusing on the use of other \ac{ML} algorithms. Models used in this project can be grouped into three categories: decision trees based models, machine vector support based models and neural networks based models. For each category, there are two subcategories: outlier detection and binary classification. Outlier detection models are trained on a single class of data (non-disruptive discharges), and generate a decision boundary that separates the normal data from the anomalies. Supervised binary classification models are trained on both classes of data (disruptive and non-disruptive discharges), and generate a decision boundary that separates the two classes.
 
-\todo[inline]{Algo parecido al word con la explicación de cada modelo}
 \subsection{Decision Trees based models}
 
-Decision trees are a type of \ac{ML} algorithm that uses a tree-like structure to make decisions based on the input data. They are easy to interpret and can handle both categorical and numerical data. 
+Decision trees are a type of \ac{ML} algorithm that uses a tree-like structure to make decisions based on the input data. This structure is built at the training phase, where the algorithm recursively splits the data into subsets based on the features that provide the most information gain. The resulting tree can be used to classify new data points by following the branches of the tree based on their feature values \autocite{1522531}.
 
-\todo{XGBoost e IForest}
+\subsubsection{Outlier detection}
+
+Decision trees can be used for outlier detection by training the model on a single class of data (non-disruptive discharges) and identifying instances that fall outside the normal patterns. The decision tree learns the characteristics of the normal data and can flag instances that do not conform to these patterns as potential anomalies. 
+
+\ac{IForest} is the canonical example of this approach. It splits the data at random features and thresholds, creating a forest of trees. Anomalies tend to be isolated in fewer splits than normal instances, because they lie in sparse regions of the feature space \autocite{inproceedings}. Later improvements, like Extended Isolation Forest replace axis-aligned cuts with random hyperplanes to reduce bias \autocite{haririExtendedIsolationForest2019}.
+
+\subsubsection{Binary classification}
+
+If labelled data of both classes exist, standard decision-tree classifiers or ensembles (Random Forests, Gradient Boosting) can draw a explicit boundary between them. With sufficient minority class samples, these models usually outperform outlier detection models, as the tree learns exactly which feature ranges characterize each class rather than inferring a boundary from a single class. In practice, binary trees are common in fraud detection and network-intrusion datasets, where even a modest number of confirmed attack records allows the model to reach high recall without over-flagging harmless traffic \autocite{354051491,binary-classification-for-fraud-detection}.
 
 \subsection{Machine Vector Support based models}
 
