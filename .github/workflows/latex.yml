@@ -38,6 +38,8 @@ jobs:
           # Uncomment the inner/outer margin lines for print version
           sed -i 's/% inner=4cm,/inner=4cm,/' conf.tex
           sed -i 's/% outer=2cm,/outer=2cm,/' conf.tex
+          # Uncomment openright for print version
+          sed -i 's/% openright,/openright,/' conf.tex
 
       - name: 📄 Compile LaTeX (Print Version)
         uses: xu-cheng/latex-action@v3
