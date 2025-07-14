@@ -50,21 +50,91 @@ The predict message is sent by the orchestrator to the alive models. It is a \te
 
 \missingfigure{Prediction response message sequence diagram}
 
-
 \section{Outlier Orchestrator}
+
+The outlier orchestrator is the central node of the anomaly detection system. It is responsible for managing the data flow between the model nodes, using the outlier protocol to communicate with them. 
+
+The orchestrator consists on a frontend and a backend. The frontend is a web application that allows users to interact with the system, while the backend is responsible for managing the data flow and the communication with the model nodes.
+
+The frontend is built using HTML, CSS, and JavaScript, and provides a user-friendly interface for managing the models and the data. It allows users to start and stop the models, view the health status of the models, and visualize the results of the anomaly detection.
+
+The backend is built using Node.js, which is a JavaScript runtime that allows to run JavaScript code on the server side. It uses the Express framework to handle the HTTP requests and responses and Axios to communicate with the model nodes, implementing the outlier protocol.
+
+Communication between the frontend and the backend is done Socket.IO, which is a library that allows real-time communication between the client and the server. This allows the frontend to receive updates from the backend in real-time, such as the health status of the models or the results of the anomaly detection.
+
+\subsection{Frontend}
+
+The frontend main page is shown in \autoref{fig:frontend-main}. There are two main panels: the top panel shows the available models, and the bottom panel consists on four tabs: \textit{Prediction}, \textit{Training}, \textit{History}, and \textit{Preview}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{frontend-principal.png}
+    \caption{Frontend main page}
+    \label{fig:frontend-main}
+\end{figure}
+
+The backend is responsible for sending the model status to the frontend, including the health status, the training status and the prediction results, while the frontend is responsible of displaying this information to the user and sending the backend the user actions, such as adding or removing models, enabling or disabling models, changing model endpoints, starting a training, or making a prediction.
+
+Model configuration is done through the \textit{Configure} button, which opens a modal where the user can change the model's endpoints. This modal is shown in \autoref{fig:frontend-configure}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{model-configuration-modal.png}
+    \caption{Model configuration modal}
+    \label{fig:frontend-configure}
+\end{figure}
+
+\subsubsection{Prediction Tab}
+
+The prediction tab allows users to make predictions using the available models. It provides a simple interface where users can choose the discharge to analyze. The \autoref{fig:frontend-prediction} shows the prediction tab and the result of a prediction.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{frontend-prediction.png}
+    \caption{Frontend prediction tab}
+    \label{fig:frontend-prediction}
+\end{figure}
+
+\subsubsection{Training Tab}
+
+The training tab (\autoref{fig:frontend-training}) is similar to the prediction tab, but users shall select more than one discharge to train the models. For simplicity, there is a button that allow to add multiple discharges at once, opening a modal that allows to select multiple input files, group them using a custom regular expression, and exclude some files with another regular expression. This modal is shown in \autoref{fig:frontend-add-multiple-discharge}. Discharges can also be labeled as disruptive or non-disruptive by setting a disruption time.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{frontend-train.png}
+    \caption{Frontend training tab}
+    \label{fig:frontend-training}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{multiple-discharge-modal.png}
+    \caption{Add multiple discharges modal}
+    \label{fig:frontend-add-multiple-discharge}
+\end{figure}
+
+\subsection{Backend}
 
 
 \section{Outlier Models}
 
-\subsection{\acs{SVM}}
+Every model node shall implement the outlier protocol in order to communicate with the orchestrator. This means that every model is a microservice implementing a server that exposes the necessary endpoints to the orchestrator. The models can be implemented in any programming language, as long as they can handle HTTP requests and responses. Models in this project are implemented in Python and Rust.
 
-\subsection{XGBoost}
+\subsection{Supervised Binary Classification}
 
-\subsection{CNN-FFT}
+\subsubsection{\acs{SVM}}
 
-\subsection{\acs{OC-SVM}}
+This project implements a \ac{SVM} model for anomaly detection, which is trained on both disruptive and non-disruptive discharges. The model is implemented in Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the comunication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation.
 
-\subsection{Isolation Forest}
+\subsubsection{XGBoost}
 
-\subsection{\acs{LSTM}}
+\subsubsection{CNN-FFT}
+
+\subsection{Outlier Detection}
+
+\subsubsection{\acs{OC-SVM}}
+
+\subsubsection{Isolation Forest}
+
+\subsubsection{\acs{LSTM}}
 
