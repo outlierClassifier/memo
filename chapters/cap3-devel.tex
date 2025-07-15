@@ -124,7 +124,9 @@ Every model node shall implement the outlier protocol in order to communicate wi
 
 \subsubsection{\acs{SVM}}
 
-This project implements a \ac{SVM} model for anomaly detection, which is trained on both disruptive and non-disruptive discharges. The model is implemented in Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the comunication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation.
+This project implements a \ac{SVM} model for anomaly detection, which is trained on both disruptive and non-disruptive discharges. The model is implemented in pure Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the comunication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation. 
+
+The model extracts two features from the discharges: the mean value of the plasma current and the \ac{FFT} of the plasma current. This model can be used to classify with a very low number of training samples, and it can also be used for real-time predictions.
 
 \subsubsection{XGBoost}
 
