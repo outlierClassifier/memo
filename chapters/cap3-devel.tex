@@ -43,10 +43,43 @@ When the training is done, models must inform the orchestrator, as shown in \aut
     \label{fig:train-message}
 \end{figure}
 
+\subsubsection{Queuing and memory optimization}
+
+The orchestrator is designed to handle multiple models and discharges simultaneously. As a training set can be large (thousands of discharges, each with thousands of windows), the orchestrator does not load every discharge into memory at once. Instead, one queue per model is created. The flow is as follows:
+
+\begin{enumerate}
+    \item User uploads training files in the dashboard interface through file input or drag-and-drop
+    \item Frontend batches files into groups of 10 discharges to avoid overwhelming the server
+    \item Frontend creates metadata containing total discharge count and batch discharge information
+    \item Frontend sends an HTTP POST request to backend's \texttt{/api/train/raw} endpoint with the batch
+    \item Controller receives batch and parses metadata to extract discharge information and file mappings
+    \item Controller checks for existing training session or creates new one if none exists
+    \item Controller starts a training session, which contacts all enabled models to initialize training
+    \item Models respond with acceptance and each gets assigned a queue structure with sequence tracking
+    \item Training session object created with total discharge count, model queues, and processed discharge tracking
+    \item Controller processes the current batch of discharges
+    \item Service creates lazy stream generator that processes one discharge at a time from the batch
+    \item Generator parses sensor files for each discharge individually, not loading all at once
+    \item Each processed discharge added to all model queues simultaneously for parallel processing
+    \item Discharge memory immediately released after being cloned to all model queues
+    \item Asynchronous queue processors start for each model independently and concurrently
+    \item Each model's queue processor sends discharges sequentially to that model's training endpoint
+    \item Discharge memory released again after successful transmission to each model
+    \item Queue processor continues until its queue is empty, then becomes idle
+    \item Process repeats for each batch until all discharges sent
+    \item Training session monitors progress and automatically finishes when total discharge count reached
+    \item All queues emptied and training session cleaned up
+    \item Models complete training and send completion notifications back to orchestrator.
+\end{enumerate}
+
 \subsection{Predict}
 \todo[inline]{Actualizar la figura de predict. En el outlier protocol no están puestas las features que se deben enviar.
 \href{https://github.com/outlierClassifier/outlier_protocol/issues/3}{GH issue 3}}
 The predict message is sent by the orchestrator to the alive models. It is a \texttt{post} message to the \texttt{/predict} model endpoint.
+
+\subsubsection{Automatic Prediction}
+
+To facilitate the prediction process, the orchestrator has a built-in feature that allows automatic predictions. This feature loads a directory and makes sequential predictions for each discharge. Orchestrator groups the files by a regular expression, and sends the discharges to the models one by one. Then, orchestrator stores the results and builds a report with statistical data. Results are explained in \autoref{sec:cap4}. 
 
 \missingfigure{Prediction response message sequence diagram}
 
@@ -129,6 +162,14 @@ This project implements a \ac{SVM} model for anomaly detection, which is trained
 The model extracts two features from the discharges: the mean value of the plasma current and the \ac{FFT} of the plasma current. This model can be used to classify with a very low number of training samples, and it can also be used for real-time predictions.
 
 \subsubsection{XGBoost}
+
+The XGBoost model is implemented in Python, using the \texttt{xgboost} library for the model, and the \texttt{fastapi} framework for the API. It is a supervised binary classification model that uses different features extracted from the discharges. These features include basic statics, like the mean and the mean of the slope of each window, the log of the \ac{RMS}, and dynamic features, like the maximum slope, and data related to the second derivative of each window (minimum, maximum and mean). In total, the model uses 7 features extracted from the discharge data for each window.
+
+Model is also fed with the past features of the discharge, that are used as a tendency to give the model more context about the discharge. This means that the model needs a minimum number of windows to be able to make predictions, which is set to 3 windows by default. As past features are treated like the current features, the model uses a total of 28 features (7 features per window, and 4 windows).
+
+XGBoost predicts the probability of a window being disruptive, so a post-processing step is needed to determine if the discharge is disruptive or not. This post-processing step is done by setting a threshold, which is set to 0.5 by default, and a number of consecutive windows that must be disruptive to consider the discharge as disruptive, which is set to 5 by default. This means that if 5 consecutive windows are above the threshold, the discharge is considered disruptive.
+
+
 
 \subsubsection{CNN-FFT}
 
