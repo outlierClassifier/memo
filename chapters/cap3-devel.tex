@@ -1,4 +1,4 @@
-\chapter{Development} \label{sec:cap3}
+\chapter{Development}\label{sec:cap3}
 
 This chapter describes the development of the anomaly detection system, which aims to create a toolkit for anomaly detection, model training, and comparison between different models. The toolkit is designed to be modular, allowing for easy integration of new models and features.
 
@@ -17,9 +17,11 @@ The anomaly detection system is composed by independent nodes. There is a centra
 
 The outlier protocol is a custom protocol based on the OpenAPI specification. It is a simple protocol that describes how the orchestrator interacts with the model nodes, and is based on HTTP messages, which can be grouped into three main categories: \textit{health}, \textit{train}, and \textit{predict}.
 
+The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists on \todo{acotar} the discharge (delete everything before the beginning of the experiment, as sensors might be activated from before), and to \todo{remuestrear} data to a constant rate (1 or 2 ms accepted).
+
 \subsection{Health}
 
-Models must implement the \texttt{/health} endpoint. The orchestrator will send a \texttt{get} message at a variable time. If the model does not answer, orchestrator must consider the model as unavailable, and data must not be sent to this model. \autoref{fig:health-message} shows the sequence diagram of the health message and its response. This message also includes the model name, uptime, and last training time.
+Models must implement the \texttt{/health} endpoint in order to be visible to the orchestrator. The orchestrator will send a \texttt{GET} message at a variable time. If the model does not answer, orchestrator must consider the model as unavailable, and data must not be sent to this model.\ \autoref{fig:health-message} shows the sequence diagram of the health message and its response. This message also includes the model name, uptime, and last training time.
 
 \begin{figure}[H]
     \centering
@@ -43,57 +45,25 @@ When the training is done, models must inform the orchestrator, as shown in \aut
     \label{fig:train-message}
 \end{figure}
 
-\subsubsection{Queuing and memory optimization}
-
-The orchestrator is designed to handle multiple models and discharges simultaneously. As a training set can be large (thousands of discharges, each with thousands of windows), the orchestrator does not load every discharge into memory at once. Instead, one queue per model is created. The flow is as follows:
-
-\begin{enumerate}
-    \item User uploads training files in the dashboard interface through file input or drag-and-drop
-    \item Frontend batches files into groups of 10 discharges to avoid overwhelming the server
-    \item Frontend creates metadata containing total discharge count and batch discharge information
-    \item Frontend sends an HTTP POST request to backend's \texttt{/api/train/raw} endpoint with the batch
-    \item Controller receives batch and parses metadata to extract discharge information and file mappings
-    \item Controller checks for existing training session or creates new one if none exists
-    \item Controller starts a training session, which contacts all enabled models to initialize training
-    \item Models respond with acceptance and each gets assigned a queue structure with sequence tracking
-    \item Training session object created with total discharge count, model queues, and processed discharge tracking
-    \item Controller processes the current batch of discharges
-    \item Service creates lazy stream generator that processes one discharge at a time from the batch
-    \item Generator parses sensor files for each discharge individually, not loading all at once
-    \item Each processed discharge added to all model queues simultaneously for parallel processing
-    \item Discharge memory immediately released after being cloned to all model queues
-    \item Asynchronous queue processors start for each model independently and concurrently
-    \item Each model's queue processor sends discharges sequentially to that model's training endpoint
-    \item Discharge memory released again after successful transmission to each model
-    \item Queue processor continues until its queue is empty, then becomes idle
-    \item Process repeats for each batch until all discharges sent
-    \item Training session monitors progress and automatically finishes when total discharge count reached
-    \item All queues emptied and training session cleaned up
-    \item Models complete training and send completion notifications back to orchestrator.
-\end{enumerate}
-
 \subsection{Predict}
 \todo[inline]{Actualizar la figura de predict. En el outlier protocol no están puestas las features que se deben enviar.
 \href{https://github.com/outlierClassifier/outlier_protocol/issues/3}{GH issue 3}}
-The predict message is sent by the orchestrator to the alive models. It is a \texttt{post} message to the \texttt{/predict} model endpoint.
 
-\subsubsection{Automatic Prediction}
-
-To facilitate the prediction process, the orchestrator has a built-in feature that allows automatic predictions. This feature loads a directory and makes sequential predictions for each discharge. Orchestrator groups the files by a regular expression, and sends the discharges to the models one by one. Then, orchestrator stores the results and builds a report with statistical data. Results are explained in \autoref{sec:cap4}. 
+The \texttt{predict} message is sent by the orchestrator to the alive models. It is a \texttt{POST} message to the \texttt{/predict} model endpoint and simulates online data. For this reason, models must send a prediction per window and the features that have been taken into account for the decision.
 
 \missingfigure{Prediction response message sequence diagram}
 
 \section{Outlier Orchestrator}
 
-The outlier orchestrator is the central node of the anomaly detection system. It is responsible for managing the data flow between the model nodes, using the outlier protocol to communicate with them. 
+The outlier orchestrator is the central node of the anomaly detection system. It is responsible for managing the data flow between the model nodes, using the outlier protocol to communicate with them.
 
 The orchestrator consists on a frontend and a backend. The frontend is a web application that allows users to interact with the system, while the backend is responsible for managing the data flow and the communication with the model nodes.
 
 The frontend is built using HTML, CSS, and JavaScript, and provides a user-friendly interface for managing the models and the data. It allows users to start and stop the models, view the health status of the models, and visualize the results of the anomaly detection.
 
-The backend is built using Node.js, which is a JavaScript runtime that allows to run JavaScript code on the server side. It uses the Express framework to handle the HTTP requests and responses and Axios to communicate with the model nodes, implementing the outlier protocol.
+The backend is built using Node.js, which is a JavaScript runtime that allows to run JavaScript code on the server side.
 
-Communication between the frontend and the backend is done Socket.IO, which is a library that allows real-time communication between the client and the server. This allows the frontend to receive updates from the backend in real-time, such as the health status of the models or the results of the anomaly detection.
+Communication between the frontend and the backend is done throw \texttt{Socket.io}, which is a library that allows real-time communication between the client and the server. This allows the frontend to receive updates from the backend in real-time, such as the health status of the models or the results of the anomaly detection.
 
 \subsection{Frontend}
 
@@ -148,10 +118,55 @@ The training tab (\autoref{fig:frontend-training}) is similar to the prediction 
 
 \subsection{Backend}
 
+The orchestrator's backend implementation is complex, as has to handle every possible message from the models. 
+
+The orchestrator backend has three main components: the controller, the middleware and the services. 
+
+The controller is a high-level class that stores model-related information, such as the current alive models, the prediction output, or the training process. It has advanced features for being efficient in memory usage, as queues to store just the necessary files while training. This feature is explained below.
+
+The middleware is a group of utilities to validate input and output information. When the controller sends an order to the models, middleware ensures that information is well-formed to ensure compatibility. It also works on the other way, as model's messages are validated throw the middleware. This component guarantees that if an error occurs, it does not propagate and leads to undefined behavior.
+
+The services component implements the low-level functionality that controller needs to communicate with the models, and exposes a high-level API that controller uses. This component includes the implementation of the voting mechanism, the batching feature to optimize memory usage or the training responses of models.
+
+\subsubsection{Queuing and memory optimization}
+
+The orchestrator is designed to handle multiple models and discharges simultaneously. As a training set can be large (thousands of discharges, each with thousands of windows), the orchestrator does not load every discharge into memory at once. Instead, one queue per model is created, where discharges are stored if needed, freeing memory when possible. The flow is as follows:
+
+\begin{enumerate}
+    \item User uploads training files in the dashboard interface through file input or drag-and-drop
+    \item Frontend batches files into groups of 10 discharges to avoid overwhelming the server
+    \item Frontend creates metadata containing total discharge count and batch discharge information
+    \item Frontend sends an HTTP POST request to backend's \texttt{/api/train/raw} endpoint with the batch
+    \item Controller receives batch and parses metadata to extract discharge information and file mappings
+    \item Controller checks for existing training session or creates new one if none exists
+    \item Controller starts a training session, which contacts all enabled models to initialize training
+    \item Models respond with acceptance and each gets assigned a queue structure with sequence tracking
+    \item Training session object is created with total discharge count, model queues, and processed discharge tracking
+    \item Controller processes the current batch of discharges
+    \item Service creates lazy stream generator that processes one discharge at a time from the batch
+    \item Generator parses sensor files for each discharge individually, not loading all at once
+    \item Each processed discharge added to all model queues simultaneously for parallel processing
+    \item Discharge memory immediately released after being cloned to all model queues
+    \item Asynchronous queue processors start for each model independently and concurrently
+    \item Each model's queue processor sends discharges sequentially to that model's training endpoint
+    \item Discharge memory released again after successful transmission to each model
+    \item Queue processor continues until its queue is empty, then becomes idle
+    \item Process repeats for each batch until all discharges sent
+    \item Training session monitors progress and automatically finishes when total discharge count reached
+    \item All queues emptied and training session cleaned up
+    \item Models complete training and send completion notifications back to orchestrator.
+\end{enumerate}
+
+
+\subsubsection{Automated predicts and report generation}
+
+To facilitate the prediction process, the orchestrator has a built-in feature that allows automatic predictions. This feature loads a directory and makes sequential predictions for each discharge. Orchestrator groups the files by a regular expression, and sends the discharges to the models one by one. Then, orchestrator stores the results and builds a report with statistical data. These results include raw outputs (prediction output per discharge), and a CSV grouping individual window predictions. Results are explained in \autoref{sec:cap4}. 
 
 \section{Outlier Models}
 
 Every model node shall implement the outlier protocol in order to communicate with the orchestrator. This means that every model is a microservice implementing a server that exposes the necessary endpoints to the orchestrator. The models can be implemented in any programming language, as long as they can handle HTTP requests and responses. Models in this project are implemented in Python and Rust.
+
+For compatibility reasons, every model must split discharges in windows of a fixed length (32 points per window). Models are allowed to extract any relevant data from the windows set.
 
 \subsection{Supervised Binary Classification}
 
@@ -161,9 +176,9 @@ This project implements a \ac{SVM} model for anomaly detection, which is trained
 
 The model extracts two features from the discharges: the mean value of the plasma current and the \ac{FFT} of the plasma current. This model can be used to classify with a very low number of training samples, and it can also be used for real-time predictions.
 
-\subsubsection{XGBoost}
+\subsubsection{XGBoost}\label{subsubsec:xgboost}
 
-The XGBoost model is implemented in Python, using the \texttt{xgboost} library for the model, and the \texttt{fastapi} framework for the API. It is a supervised binary classification model that uses different features extracted from the discharges. These features include basic statics, like the mean and the mean of the slope of each window, the log of the \ac{RMS}, and dynamic features, like the maximum slope, and data related to the second derivative of each window (minimum, maximum and mean). In total, the model uses 7 features extracted from the discharge data for each window.
+The XGBoost model is implemented in Python, using the \texttt{xgboost} library for the model, and the \texttt{fastapi} framework for the API.\ It is a supervised binary classification model that uses different features extracted from the discharges. These features include basic statics, like the mean and the mean of the slope of each window, the log of the \ac{RMS}, and dynamic features, like the maximum slope, and data related to the second derivative of each window (minimum, maximum and mean). In total, the model uses 7 features extracted from the discharge data for each window.
 
 Model is also fed with the past features of the discharge, that are used as a tendency to give the model more context about the discharge. This means that the model needs a minimum number of windows to be able to make predictions, which is set to 3 windows by default. As past features are treated like the current features, the model uses a total of 28 features (7 features per window, and 4 windows).
 
@@ -175,9 +190,15 @@ XGBoost predicts the probability of a window being disruptive, so a post-process
 
 \subsection{Outlier Detection}
 
+This section explains outlier detection models that are implemented for the project. These models are only trained with non-disruptive discharges, and try to find common patterns between them. If a window differs more than a threshold from the pattern, it is labeled as disruptive.
+
 \subsubsection{\acs{OC-SVM}}
 
 \subsubsection{Isolation Forest}
+
+The \ac{IForest} model is implemented in Python, using \texttt{sklearn} library for the model, and the \texttt{fastapi} framework for the API.\ As \texttt{sklearn} is used, if a \ac{GPU} is available, it will be used to improve training times.
+
+This model extracts some relevant features from windows, which include statistical data (mean value, standard deviation, minimum, maximum and range)
 
 \subsubsection{\acs{LSTM}}
 
