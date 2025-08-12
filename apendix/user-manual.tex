@@ -1,0 +1,36 @@
+\chapter{User Manual}
+
+This section explains how to download and install the software.
+
+\section{Outlier Orchestrator}
+
+\subsection{Requirements}
+
+To run the outlier orchestrator, there are some software requirements that must be satisfied.
+
+\begin{itemize}
+    \item \texttt{Node.js:} v $\geq$ v22.17.1
+    \item \texttt{\ac{npm}:} v $\geq$ 10.9.2
+\end{itemize}
+
+\subsection{Installation}
+
+Clone the repository available in \todo{Referencia al repo}. Install the dependencies with 
+
+\begin{lstlisting}[caption={Using \ac{npm} to install dependencies}]
+    npm install 
+\end{lstlisting}
+
+Run the outlier orchestrator with
+
+\begin{lstlisting}[caption={Running the outlier orchestrator}]
+    npm start
+\end{lstlisting}
+
+Access \hyperbaseurl{http://localhost:3000/}{\texttt{http://localhost:3000/}} on any browser. The outlier frontend must be shown. Backend is already running.
+
+\section{XGBoost}
+
+\subsection{Requirements}
+
+To run this model, Python must be installed on the target machine.

@@ -49,11 +49,11 @@ When the training is done, models must inform the orchestrator, as shown in \aut
 \todo[inline]{Actualizar la figura de predict. En el outlier protocol no están puestas las features que se deben enviar.
 \href{https://github.com/outlierClassifier/outlier_protocol/issues/3}{GH issue 3}}
 
-The \texttt{predict} message is sent by the orchestrator to the alive models. It is a \texttt{POST} message to the \texttt{/predict} model endpoint and simulates online data. For this reason, models must send a prediction per window and the features that have been taken into account for the decision.
+The \texttt{predict} message is sent by the orchestrator to the alive models. It is a \texttt{POST} message to the \texttt{/predict} model endpoint and simulates online data. For this reason, models must send a prediction per window and the features that have been taken into account for the decision. Models must also report a \textit{justification} value, which is the confidence of that window to belong to a class.
 
 \missingfigure{Prediction response message sequence diagram}
 
-\section{Outlier Orchestrator}
+\section{Outlier Orchestrator}\label{sec:orchestrator}
 
 The outlier orchestrator is the central node of the anomaly detection system. It is responsible for managing the data flow between the model nodes, using the outlier protocol to communicate with them.
 
@@ -96,6 +96,17 @@ The prediction tab allows users to make predictions using the available models. 
     \includegraphics[width=\textwidth]{frontend-prediction.png}
     \caption{Frontend prediction tab}
     \label{fig:frontend-prediction}
+\end{figure}
+
+To ease models comparison, prediction orders can be automatically sent for discharges on a folder. As the Outlier Protocol specifies, models must report prediction per window, and add a justification. But models can differ in how do they calculate the final result. For example, as explained on \autoref{sec:models}, SVM calculates the distance to the separation hyperplane, and it is considered disruption if this value is positive, while XGBoost calculates a probability for being disruptive, so a value between 0 and 1 is returned. For this reason, user can set a threshold for a model, which is the first justification value that will be considered disruptive. Also, a \textit{count threshold} can be specified, this is, the number of consecutive windows that need to be labeled as disruptive to consider that discharge as disruptive. This behavior is represented on \autoref{fig:auto-pred}. The modal enables these personalization options for every online model. 
+
+The frontend excludes the unwanted files and fetches the backend's \texttt{/api/ automated-predicts/session} endpoint, which handles user's information. On the backend section there is a detailed explanation of the implementation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{frontend-automated-predicts.png}
+    \caption{Automated predictions}
+    \label{fig:auto-pred}
 \end{figure}
 
 \subsubsection{Training Tab}
@@ -160,9 +171,9 @@ The orchestrator is designed to handle multiple models and discharges simultaneo
 
 \subsubsection{Automated predicts and report generation}
 
-To facilitate the prediction process, the orchestrator has a built-in feature that allows automatic predictions. This feature loads a directory and makes sequential predictions for each discharge. Orchestrator groups the files by a regular expression, and sends the discharges to the models one by one. Then, orchestrator stores the results and builds a report with statistical data. These results include raw outputs (prediction output per discharge), and a CSV grouping individual window predictions. Results are explained in \autoref{sec:cap4}. 
+As explained on the frontend section, to facilitate the prediction process, the orchestrator has a built-in feature that allows automatic predictions. This feature loads a directory and makes sequential predictions for each discharge. Orchestrator groups the files by a regular expression, and sends the discharges to the models one by one. Then, orchestrator stores the results and builds a report with statistical data. These results include raw outputs (prediction output per discharge), and a CSV grouping individual window predictions. Results are explained in \autoref{sec:cap4}. The implementation of this feature
 
-\section{Outlier Models}
+\section{Outlier Models}\label{sec:models}
 
 Every model node shall implement the outlier protocol in order to communicate with the orchestrator. This means that every model is a microservice implementing a server that exposes the necessary endpoints to the orchestrator. The models can be implemented in any programming language, as long as they can handle HTTP requests and responses. Models in this project are implemented in Python and Rust.
 
@@ -170,7 +181,7 @@ For compatibility reasons, every model must split discharges in windows of a fix
 
 \subsection{Supervised Binary Classification}
 
-\subsubsection{\acs{SVM}}
+\subsubsection{\acs{SVM}}\label{sec:svm}
 
 This project implements a \ac{SVM} model for anomaly detection, which is trained on both disruptive and non-disruptive discharges. The model is implemented in pure Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the comunication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation. 
 
@@ -182,7 +193,38 @@ The XGBoost model is implemented in Python, using the \texttt{xgboost} library f
 
 Model is also fed with the past features of the discharge, that are used as a tendency to give the model more context about the discharge. This means that the model needs a minimum number of windows to be able to make predictions, which is set to 3 windows by default. As past features are treated like the current features, the model uses a total of 28 features (7 features per window, and 4 windows).
 
-XGBoost predicts the probability of a window being disruptive, so a post-processing step is needed to determine if the discharge is disruptive or not. This post-processing step is done by setting a threshold, which is set to 0.5 by default, and a number of consecutive windows that must be disruptive to consider the discharge as disruptive, which is set to 5 by default. This means that if 5 consecutive windows are above the threshold, the discharge is considered disruptive.
+The necessary parameters to create an XGBoost model with the \texttt{xgboost} library are shown on \autoref{lst:xgboost-params}. These parameters are set to values that have been tested and work well for the project, but they can be modified to improve the model's performance. The \texttt{tree\_method} is set to \texttt{hist} to use a histogram-based algorithm, which is faster and more memory-efficient than the default \texttt{exact} method\todo{Ref}. The \texttt{n\_jobs} parameter is set to -1 to use all available CPU cores for training. The \texttt{objective} is set to \texttt{binary:logistic} for binary classification, and the evaluation metric is set to \texttt{aucpr} (area under the precision-recall curve) for better performance in imbalanced datasets, like the given ones. 
+
+\begin{lstlisting}[language=Python, caption={XGBoost model parameters}, label={lst:xgboost-params}]
+    params = {
+        # Algorithm and hardware settings
+        'tree_method': 'hist',
+        'n_jobs': -1,
+        # Objective and evaluation metrics
+        'objective': 'binary:logistic',
+        'eval_metric': 'aucpr',
+        # Regularization and overfitting control
+        'learning_rate': 0.05,
+        'scale_pos_weight': scale_pos_weight,
+        # Hyperparameters
+        'max_depth': 6,
+        'min_child_weight': 3,
+        'gamma': 1.0,
+        'eta': 0.02,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+    }
+
+    dtrain = xgb.DMatrix(X_array, label=y_array)
+    model = xgb.train(params, 
+                      dtrain, 
+                      num_boost_round=10000, 
+                      verbose_eval=10
+                      )
+
+\end{lstlisting}
+
+XGBoost predicts the probability of a window being disruptive, so a post-processing step is needed to determine if the discharge is disruptive or not. This post-processing step is done by setting a threshold, which is set to 0.5 by default, and a number of consecutive windows that must be disruptive to consider the discharge as disruptive, which is set to 3 by default. This means that if 3 consecutive windows are above the threshold, the discharge is considered disruptive.
 
 
 
