@@ -1,16 +1,29 @@
 \chapter{State of the Art} \label{sec:cap2}
 
-\section{Introduction to the \acs{ITER} Project}
+\section{Introduction to Nuclear Fusion}
 
-The \ac{ITER} project is an international collaboration aimed at demonstrating the feasibility of nuclear fusion as a large-scale and carbon-free source of energy. It is being constructed in Cadarache, France, and involves 35 countries, including the European Union, the United States, China, India, Japan, Russia, and South Korea. The project aims to build the world's largest tokamak reactor, which will use magnetic confinement to achieve controlled nuclear fusion.
+Nuclear fusion is the process in which two light atomic nuclei combine to form a heavier nucleus, releasing a substantial amount of energy. This is the same reaction that powers the Sun and other stars, making it a potential source of clean, virtually limitless energy for humanity.
 
-Inside the tokamak, plasma will be heated to extremely high temperatures, allowing hydrogen isotopes to fuse and release energy. The reactor is designed to produce ten times more energy than it consumes, making it a potential game-changer in the field of energy production.
+The primary fuels for fusion are hydrogen isotopes such as deuterium and tritium. Their fusion produces helium and a high-energy neutron, releasing energy mainly as the kinetic energy of the neutron and, to a lesser extent, electromagnetic radiation.
+
+Achieving controlled fusion on Earth requires overcoming the electrostatic repulsion between positively charged nuclei, which demands extremely high temperatures (on the order of tens of millions of kelvin) and sufficient pressure. These conditions can be achieved through magnetic confinement — in devices known as tokamaks — or through inertial confinement using high-power lasers.
+
+
+\section{Nuclear Fusion on \acs{ITER} and \acs{JET}}
+
+The \ac{ITER} project is an international collaboration aimed at demonstrating the feasibility of nuclear fusion  project is an international collaboration designed to demonstrate the feasibility of nuclear fusion as a large-scale, carbon-free energy source. Under construction in Cadarache, France, ITER involves 35 countries, including members of the European Union, the United States, China, India, Japan, Russia, and South Korea. It will house the world's largest tokamak, using magnetic confinement to heat plasma to fusion conditions.\ \ac{ITER} is designed to produce ten times more fusion power than the power used to heat the plasma, representing a major step toward commercial fusion energy.
+
+The \ac{JET} tokamak, located in the United Kingdom, is currently the largest operational tokamak and has played a key role in advancing fusion science. \ac{JET} has been essential for testing plasma scenarios, materials, and technologies that will be implemented in \ac{ITER}, achieving record plasma parameters and significant advances in stability and confinement.
+
+The \ac{CIEMAT} is Spain's representative in \ac{EURATOM}'s fusion program, which includes participation in \ac{JET} and \ac{ITER}. For this project, \ac{CIEMAT} has provided experimental data from \ac{JET}, consisting of recorded plasma discharges.
+
+\section{Discharges and Disruptions}
 
 A \textit{Discharge} is a plasma operation in the tokamak, where the plasma is created and maintained for a certain period. Each discharge is characterized by various parameters, such as plasma current, inductance, density, radiated power or input power. When these parameters deviate from their expected values, it can indicate potential issues or anomalies in the reactor's operation.
 
 A \textit{Disruption} is an event that occurs when the plasma becomes unstable and loses confinement, leading to a rapid cooling of the plasma and a loss of control. For this project, discharges are classified as either disruptive or non-disruptive.
 
-A \textit{Campaign} is a set of discharges that are analyzed together. For this project, there are three campaigns available, each containing a different number of discharges. The available data for the project is summarized in \autoref{tab:campaigns}.
+A \textit{Campaign} is a set of discharges that are analyzed together. For this project, there are three campaigns available, each containing a different number of discharges. The available data for the project is summarized in \autoref{tab:campaigns}. This data is collected from the \ac{JET} tokamak and stored in text files for later analysis.
 
 \begin{table}[htbp]
     \centering
@@ -48,10 +61,32 @@ Anomaly detection in nuclear fusion is crucial for ensuring the safe and efficie
 
 To address this challenge, various machine learning techniques have been applied to analyze the data generated during discharges. These techniques aim to identify patterns and deviations in the data that may indicate potential anomalies. An early detection of these anomalies is essential to prevent disruptions and ensure the stability of the plasma, using gas injection to stop the nuclear fusion reaction before it causes damage to the reactor.
 
-\subsection{Current implementation}
+\subsection{Introduction to \acs{APODIS}}
 
-The current implementation is based on a \ac{SVM} model trained on historical discharge data. The model is designed to classify discharges as normal or anomalous based on the input parameters. The training process involves using labeled data, where each discharge is categorized as either normal or anomalous.
+\ac{CIEMAT} uses the \ac{APODIS} algorithm, which is based on a \ac{SVM} model trained on historical discharge data. The model is designed to classify discharges as normal or anomalous based on the input parameters. The training process involves using labeled data, where each discharge is categorized as either normal or anomalous.
 
+The \ac{APODIS} algorithm uses the signals listed in \autoref{tab:apodis-signals}.
+
+\begin{table}[htbp]
+  \centering
+  \caption{List of signals analysed in the APODIS algorithm}
+  \label{tab:apodis-signals}
+  \begin{tabular}{@{}l c@{}}
+    \toprule
+    \textbf{Signal Name} & \textbf{Units} \\
+    \midrule
+    (1) Plasma Current                             & \si{A} \ \ \  \\
+    (2) Mode Lock Amplitude                        & \si{T} \ \ \  \\
+    (3) Plasma internal inductance                 &             \\ % adimensional
+    (4) Plasma density                             & \si{\per\cubic\metre} \\
+    (5) Stored diamagnetic energy time derivative  & \si{W} \ \ \  \\
+    (6) Radiated Power                             & \si{W} \ \ \  \\
+    (7) Total Input power                          & \si{W} \ \ \  \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Machine Learning}
 \ac{SVM} is a machine learning algorithm whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. On the training phase, the model receives entire discharges as input, and the category of the discharge. Then, it divides data in windows of 32 milliseconds, and extracts the mean value and the \ac{FFT} of each window. On the prediction phase, the model receives a data stream, and fills a buffer to create a window. Then, it extracts the same features as in the training phase, and predicts the category of this window. If the model predicts an anomalous window, the discharge is classified as anomalous. This classification shall be done before the disruption occurs.
 
 There are some limitations to this approach. First, a window-based approach does not take into account the temporal dependencies of the data. This means that the model may not be able to capture the dynamics of the plasma behavior over time. Second, \ac{SVM} models with non-linear kernels have a complexity between $O(n^2)$ and $O(n^3)$, where $n$ is the number of training samples. This means that the model may not be able to scale to large datasets \autocite{kekulawalaSupportVectorMachines2024}. Third, even though \ac{SVM} models do not require a balanced dataset, the model could be biased towards the majority class, leading to a high false negative rate \autocite{10.1007/978-3-540-30115-8_7}. This is particularly important in this project, as the number of non-disruptive discharges is much higher than the number of disruptive discharges, as shown in \autoref{tab:campaigns}.

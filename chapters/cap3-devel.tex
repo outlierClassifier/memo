@@ -2,6 +2,15 @@
 
 This chapter describes the development of the anomaly detection system, which aims to create a toolkit for anomaly detection, model training, and comparison between different models. The toolkit is designed to be modular, allowing for easy integration of new models and features.
 
+\section{Data provided by \acs{CIEMAT}}
+
+When a discharge experiment is performed, several data is collected from the plasma. This data is collected by sensors that measure different parameters, and stored in text files for later usage.
+
+
+
+This project uses the discharges provided by \ac{CIEMAT}, which are organized in Campaigns. For consistent comparison, C23 is used for training and C24 is used for validation.
+
+
 \section{System Design}
 
 The anomaly detection system is composed by independent nodes. There is a central node that orchestrates the system, and several nodes that implement the anomaly detection models. Each model node works as a microservice and is responsible for training and predicting anomalies using its own algorithm. The central node is responsible for managing the data flow between the model nodes and the outlier protocol. The system design is shown in \autoref{fig:system-design}.
@@ -191,9 +200,58 @@ The model extracts two features from the discharges: the mean value of the plasm
 
 The XGBoost model is implemented in Python, using the \texttt{xgboost} library for the model, and the \texttt{fastapi} framework for the API.\ It is a supervised binary classification model that uses different features extracted from the discharges. These features include basic statics, like the mean and the mean of the slope of each window, the log of the \ac{RMS}, and dynamic features, like the maximum slope, and data related to the second derivative of each window (minimum, maximum and mean). In total, the model uses 7 features extracted from the discharge data for each window.
 
-Model is also fed with the past features of the discharge, that are used as a tendency to give the model more context about the discharge. This means that the model needs a minimum number of windows to be able to make predictions, which is set to 3 windows by default. As past features are treated like the current features, the model uses a total of 28 features (7 features per window, and 4 windows).
+Model is also fed with the past features of the discharge, that are used as a tendency to give the model more context about the discharge. This means that the model needs a minimum number of windows to be able to make predictions, which is set to 3 windows by default. As past features are treated like the current features, the model uses a total of 28 features (7 features per window, and 4 windows). 
 
-The necessary parameters to create an XGBoost model with the \texttt{xgboost} library are shown on \autoref{lst:xgboost-params}. These parameters are set to values that have been tested and work well for the project, but they can be modified to improve the model's performance. The \texttt{tree\_method} is set to \texttt{hist} to use a histogram-based algorithm, which is faster and more memory-efficient than the default \texttt{exact} method\todo{Ref}. The \texttt{n\_jobs} parameter is set to -1 to use all available CPU cores for training. The \texttt{objective} is set to \texttt{binary:logistic} for binary classification, and the evaluation metric is set to \texttt{aucpr} (area under the precision-recall curve) for better performance in imbalanced datasets, like the given ones. 
+Feature extraction logic for the current window is implemented in the \texttt{extract\_ features} function, which is shown in \autoref{lst:xgboost-features}. This function takes a list of floats as input, which represents the discharge data for a window, and returns a numpy array with the extracted features. The function raises a \texttt{ValueError} if the input window is empty. \autoref{lst:xgboost-past-features} shows the feature extraction for the past windows, which is done by iterating over the past windows and extracting the features for each one. The features are then averaged to get a single feature vector for each past window.
+
+\begin{lstlisting}[language=Python, caption={XGBoost feature extraction for the current window}, label={lst:xgboost-features}]
+def extract_features(window: list[float]) -> np.ndarray:
+    """Extract features from discharge data for model training/prediction"""
+
+    if len(window) == 0:
+        raise ValueError("Window cannot be empty")
+
+    features = []
+
+    mean = np.mean(window)
+    if len(window) > 1:
+        diff = np.diff(window)
+    else:
+        diff = np.array([0.0])
+
+    if len(window) > 2:
+        abs_second_derivate = np.abs(np.diff(diff))
+    else:
+        abs_second_derivate = np.array([0.0])
+
+    features.extend([
+        # Core statistics
+        mean,
+        diff.mean() * 1/SAMPLING_TIME, # Slope (mean of diffs) 
+        np.log1p(np.sqrt(np.mean(np.square(window)))), # log of RMS
+
+        # Dynamic features
+        np.max(np.abs(diff)), # Max slope
+        # Second derivative features
+        np.min(abs_second_derivate) * 1/(SAMPLING_TIME**2),
+        np.max(abs_second_derivate) * 1/(SAMPLING_TIME**2),
+        np.mean(abs_second_derivate) * 1/(SAMPLING_TIME**2),
+    ])
+    return np.array(features).reshape(1, -1)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={XGBoost feature extraction for the past windows}, label={lst:xgboost-past-features}]
+    for j in range(1, num_tendency + 1):
+        prev_idx = window_idx - j
+        if prev_idx in aligned_windows and len(aligned_windows[prev_idx]) > 0:
+            prev_window_features = np.zeros(feature_size)
+            for window in aligned_windows[prev_idx]:
+                prev_window_features += extract_features(window)[0]
+            prev_window_features /= len(aligned_windows[prev_idx])
+            all_features.append(prev_window_features)
+\end{lstlisting}
+
+The necessary parameters to create an XGBoost model with the \texttt{xgboost} library are shown on \autoref{lst:xgboost-params}. These parameters are set to values that have been tested and work well for the project, but they can be modified to improve the model's performance. The \texttt{tree\_method} is set to \texttt{hist} to use a histogram-based algorithm, which is faster and more memory-efficient than the default \texttt{exact} method\todo{Ref}. The \texttt{n\_jobs} parameter is set to -1 to use all available CPU cores for training. The \texttt{objective} is set to \texttt{binary:logistic} for binary classification, and the evaluation metric is set to \texttt{aucpr} (area under the precision-recall curve) for better performance in imbalanced datasets, like the given ones.
 
 \begin{lstlisting}[language=Python, caption={XGBoost model parameters}, label={lst:xgboost-params}]
     params = {
@@ -224,8 +282,7 @@ The necessary parameters to create an XGBoost model with the \texttt{xgboost} li
 
 \end{lstlisting}
 
-XGBoost predicts the probability of a window being disruptive, so a post-processing step is needed to determine if the discharge is disruptive or not. This post-processing step is done by setting a threshold, which is set to 0.5 by default, and a number of consecutive windows that must be disruptive to consider the discharge as disruptive, which is set to 3 by default. This means that if 3 consecutive windows are above the threshold, the discharge is considered disruptive.
-
+XGBoost predicts the probability of a window being disruptive, so a post-processing step is needed to determine if the discharge is disruptive or not. This post-processing step is done by the orchestrator, setting a threshold, which is set to 0.5 by default (50\% chance of being disruptive), and a number of consecutive windows that must be disruptive to consider the discharge as disruptive, which is set to 3 by default. This means that if 3 consecutive windows are above the threshold, the discharge is considered disruptive.
 
 
 \subsubsection{CNN-FFT}

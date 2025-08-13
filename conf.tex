@@ -8,6 +8,14 @@
 \usepackage{babel}
 \usepackage[T1]{fontenc}
 
+% Better hyphenation settings
+\tolerance=1000
+\emergencystretch=3em
+\hyphenpenalty=50
+\exhyphenpenalty=50
+\binoppenalty=700
+\relpenalty=500
+
 \usepackage{graphicx}
 \graphicspath{ {img/} }
 
@@ -26,7 +34,7 @@
     % outer=2cm,
     heightrounded,
     ]{geometry}
-\usepackage[protrusion=false, expansion=true]{microtype}
+\usepackage[protrusion=true, expansion=true, final]{microtype}
 
 % Hyperref package for clickable links
 \usepackage[hyphens]{url}
