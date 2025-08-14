@@ -6,16 +6,27 @@ This chapter presents the results obtained from the implemented models, includin
 
 This project uses git to handle different versions. As multiple software has been developed in this project, a GitHub Organization has been created in order to ease the cloning process.
 
-The main repositories available on the organization are:
+The main repositories available on the organization are \autocite{OutlierClassifier}:
 
 \begin{itemize}
-    \item \textbf{Outlier orchestrator:} This repository contains the orchestrator explained at \autoref{sec:orchestrator}. 
+    \item \textbf{Outlier orchestrator:} This repository contains the orchestrator explained at \autoref{sec:orchestrator} \autocite{OutlierClassifierOutlier_orchestrator2025a}.
     \item \textbf{py\_xgboost:} This repository contains the implementation of the XGBoost model \autocite{OutlierClassifierPy_xgboost2025}.
 \end{itemize}
 
 \section{Model Analysis and optimization}
 
 This section provides an analysis of the models implemented in this project, focusing on their performance metrics and the optimization techniques applied to enhance their accuracy and efficiency. To do so, some discharges from the C24 campaign are selected for a deep analysis. These discharges are representative of different operational scenarios and include both normal and anomalous events. 
+
+\subsection{\acs{SVM}: \acs{APODIS} algorithm}
+
+The \ac{APODIS} algorithm is a well known algorithm for anomaly detection in plasma discharges. It is important to note that this project does not aim to improve the \ac{APODIS} algorithm, but to implement it to compare its performance with other models.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/svm.png}
+    \caption{SVM configuration}
+    \label{fig:svm-config}
+\end{figure}
 
 \subsection{XGBoost}
 

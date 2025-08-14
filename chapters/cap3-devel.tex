@@ -180,21 +180,110 @@ The orchestrator is designed to handle multiple models and discharges simultaneo
 
 \subsubsection{Automated predicts and report generation}
 
-As explained on the frontend section, to facilitate the prediction process, the orchestrator has a built-in feature that allows automatic predictions. This feature loads a directory and makes sequential predictions for each discharge. Orchestrator groups the files by a regular expression, and sends the discharges to the models one by one. Then, orchestrator stores the results and builds a report with statistical data. These results include raw outputs (prediction output per discharge), and a CSV grouping individual window predictions. Results are explained in \autoref{sec:cap4}. The implementation of this feature
+As explained on the frontend section, to facilitate the prediction process, the orchestrator has a built-in feature that allows automatic predictions. This feature loads a directory and makes sequential predictions for each discharge. Orchestrator groups the files by a regular expression, and sends the discharges to the models one by one. Then, orchestrator stores the results and builds a report with statistical data. These results include raw outputs (prediction output per discharge), and a CSV grouping individual window predictions. Results are explained in \autoref{sec:cap4}.
 
 \section{Outlier Models}\label{sec:models}
 
 Every model node shall implement the outlier protocol in order to communicate with the orchestrator. This means that every model is a microservice implementing a server that exposes the necessary endpoints to the orchestrator. The models can be implemented in any programming language, as long as they can handle HTTP requests and responses. Models in this project are implemented in Python and Rust.
 
-For compatibility reasons, every model must split discharges in windows of a fixed length (32 points per window). Models are allowed to extract any relevant data from the windows set.
+For compatibility reasons, every model must split discharges in windows of a fixed length (16 points per window). Models are allowed to extract any relevant data from the windows set.
 
 \subsection{Supervised Binary Classification}
 
 \subsubsection{\acs{SVM}: A Rust implementation of the \acs{APODIS} algorithm}
 
-This project implements the \ac{APODIS} algorithm for anomaly detection as a starting comparison point. The model is implemented in pure Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the communication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation. 
+This project implements the \ac{APODIS} algorithm for anomaly detection as a starting comparison point. The model is implemented in pure Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the communication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation.
 
-The model extracts two features from the discharges: the mean value of the plasma current and the \ac{FFT} of the plasma current. This model can be used to classify with a very low number of training samples, and it can also be used for real-time predictions.
+The feature extraction logic is implemented in the \texttt{get\_features} function, which extracts the mean and the standard deviation of the FFT magnitudes for each window. This function is shown in \autoref{lst:svm-features}.
+
+\begin{lstlisting}[language=Rust, caption={Feature extraction for the \ac{SVM} model}, label={lst:svm-features}]
+    fn get_features(
+        &self, 
+        window_size: usize
+    ) -> (SignalFeatures, SignalFeatures) {
+        let num_windows = self.values.len() / window_size;
+
+        let mut mean_values = Vec::with_capacity(num_windows);
+        let mut fft_std_values = Vec::with_capacity(num_windows);
+
+        let mut planner = FftPlanner::new();
+        let fft = planner.plan_fft_forward(window_size);
+
+        for k in 0..num_windows {
+            let start_idx = k * window_size;
+            let end_idx = (k + 1) * window_size;
+            let window = &self.values[start_idx..end_idx];
+
+            let mean_value = window.iter().sum::<f64>() / window_size as f64;
+            mean_values.push(mean_value);
+
+            let mut fft_input: Vec<Complex<f64>> =
+                window.iter().map(|&x| Complex::new(x, 0.0)).collect();
+
+            fft.process(&mut fft_input);
+
+            // Positive freqs (without DC component)
+            // Only need up to window_size/2 due to symmetry
+            let magnitudes: Vec<f64> = fft_input[1..=window_size / 2]
+                .iter()
+                .map(|c| c.norm())
+                .collect();
+
+            // std deviation of FFT magnitudes
+            let fft_mean = magnitudes.iter().sum::<f64>() / magnitudes.len() as f64;
+            let fft_variance = magnitudes
+                .iter()
+                .map(|&m| (m - fft_mean) * (m - fft_mean))
+                .sum::<f64>() / magnitudes.len() as f64;
+
+            let fft_std = fft_variance.sqrt();
+            fft_std_values.push(fft_std);
+        }
+
+        (
+            SignalFeatures {
+                type_: FeatureType::Mean,
+                values: mean_values,
+            },
+            SignalFeatures {
+                type_: FeatureType::FftStd,
+                values: fft_std_values,
+            },
+        )
+    }
+\end{lstlisting}
+
+To train the model, SVM uses the \texttt{linfa} crate, which provides a high-level API for machine learning in Rust. The training process is done with the configuration which is shown in \autoref{lst:svm-train}. This function takes a dataset of features and labels, and trains the model using the \ac{SVM} algorithm with a Gaussian kernel.
+
+\begin{lstlisting}[language=Rust, caption={Training the \ac{SVM} model}, label={lst:svm-train}]
+    let model: Svm<f64, bool> = Svm::<f64, bool>::params()
+        .gaussian_kernel(10.)
+        .pos_neg_weights(1.0, 1.0)
+        .fit(&dataset)
+        .expect("Error training SVM model");
+\end{lstlisting}
+
+The prediction process is done for each window, and the model returns a boolean value indicating whether the window is anomalous or not. The prediction process is shown in \autoref{lst:svm-predict}. The model also returns the distance to the separation hyperplane, which is used to calculate the justification value.
+
+\begin{lstlisting}[language=Rust, caption={Prediction with the \ac{SVM} model}, label={lst:svm-predict}]
+    for (i, signal) in dataset
+        .records
+        .axis_iter(ndarray::Axis(0))
+        .enumerate() 
+    {
+        let distance = model
+            .as_ref()
+            .unwrap()
+            .weighted_sum(&signal.to_owned()) - model.as_ref().unwrap().rho;
+        window_props.push(WindowProperties {
+            feature_values: signal.to_vec(),
+            prediction: if predictions[i] { 
+                "Anomaly".to_string() 
+                } else { "Normal".to_string() },
+            distance,
+        });
+    }
+\end{lstlisting}
 
 \subsubsection{XGBoost}\label{subsubsec:xgboost}
 
@@ -202,7 +291,7 @@ The XGBoost model is implemented in Python, using the \texttt{xgboost} library f
 
 Model is also fed with the past features of the discharge, that are used as a tendency to give the model more context about the discharge. This means that the model needs a minimum number of windows to be able to make predictions, which is set to 3 windows by default. As past features are treated like the current features, the model uses a total of 28 features (7 features per window, and 4 windows). 
 
-Feature extraction logic for the current window is implemented in the \texttt{extract\_ features} function, which is shown in \autoref{lst:xgboost-features}. This function takes a list of floats as input, which represents the discharge data for a window, and returns a numpy array with the extracted features. The function raises a \texttt{ValueError} if the input window is empty. \autoref{lst:xgboost-past-features} shows the feature extraction for the past windows, which is done by iterating over the past windows and extracting the features for each one. The features are then averaged to get a single feature vector for each past window.
+Feature extraction logic for the current window is implemented in the \texttt{extract\_ features} function, which is shown in \autoref{lst:xgboost-features}. This function takes a list of floats as input, which represents the discharge data for a window, and returns a numpy array with the extracted features. The function raises a \texttt{ValueError} if the input window is empty.\ \autoref{lst:xgboost-past-features} shows the feature extraction for the past windows, which is done by iterating over the past windows and extracting the features for each one. The features are then averaged to get a single feature vector for each past window.
 
 \begin{lstlisting}[language=Python, caption={XGBoost feature extraction for the current window}, label={lst:xgboost-features}]
 def extract_features(window: list[float]) -> np.ndarray:

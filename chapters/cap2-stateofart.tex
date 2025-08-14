@@ -104,7 +104,23 @@ Decision trees are a type of \ac{ML} algorithm that uses a tree-like structure t
 
 Decision trees can be used for outlier detection by training the model on a single class of data (non-disruptive discharges) and identifying instances that fall outside the normal patterns. The decision tree learns the characteristics of the normal data and can flag instances that do not conform to these patterns as potential anomalies. 
 
-\ac{IForest} is the canonical example of this approach. It splits the data at random features and thresholds, creating a forest of trees. Anomalies tend to be isolated in fewer splits than normal instances, because they lie in sparse regions of the feature space \autocite{inproceedings}. Later improvements, like Extended Isolation Forest replace axis-aligned cuts with random hyperplanes to reduce bias \autocite{haririExtendedIsolationForest2019}.
+\ac{IForest} detects anomalies by explicitly isolating them through random binary partitioning, rather than estimating a density of normal data. Each \emph{isolation tree} is grown on a subsample of size $\psi$ by recursively selecting a feature uniformly at random and a split value uniformly within its observed range at the current node; growth stops when a point is isolated or a height limit is reached. The \emph{path length} $h(x)$ of an instance $x$ is the number of edges from the root to the external node where $x$ is separated. Anomalies, being few and different, tend to have shorter paths than regular points.\autocite{inproceedings}
+
+To compare path lengths across different sample sizes, \textcite{inproceedings} normalize by the expected path length of an unsuccessful search in a binary tree,
+\begin{equation}
+c(n)\;=\;2\,H(n-1)\;-\;\frac{2(n-1)}{n},
+\qquad
+H(m)=\sum_{k=1}^{m}\frac{1}{k}\approx \ln(m)+\gamma,
+\label{eq:expected-path-length}
+\end{equation}
+and define the ensemble anomaly score for subsample size $\psi$ as
+\begin{equation}
+s(x,\psi)\;=\;2^{-\; \mathbb{E}[\,h(x)\,]/c(\psi)}.
+\label{eq:isolation-forest-score}
+\end{equation}
+Scores $s(x)\approx 1$ indicate strong anomalies ($h(x)\ll c(\psi)$), whereas $s(x)\approx 0.5$ is characteristic of inliers. With $t$ trees and subsample size $\psi$, training and scoring run in $\mathcal{O}\big(t\,\psi\log\psi\big)$ time and require $\mathcal{O}(t\,\psi)$ memory, which makes the method suitable for high-volume tabular data.\autocite{inproceedings}
+
+\emph{\ac{EIF}} replaces axis-aligned splits by randomly oriented hyperplanes (or, equivalently, applies random rotations per tree), improving rotational invariance and reducing scoring artifacts near oblique boundaries without materially increasing computational cost.\autocite{haririExtendedIsolationForest2019}
 
 \subsubsection{Binary classification}
 
@@ -173,10 +189,9 @@ f(x) \;=\; \sum_{i=1}^N \alpha_i y_i K(x_i,x) + b,\qquad \hat{y}(x) = \mathrm{si
 \end{equation}
 Typical kernels include the linear kernel, the polynomial kernel $K(x,x')={(\langle x,x'\rangle + c)}^d$, and the Gaussian RBF kernel $K(x,x')=\exp(-\gamma\lVert x-x'\rVert^2)$, which implicitly realize large (even infinite)-dimensional feature mappings without explicit construction of $\phi$ (the ``kernel trick'').
 
-Class imbalance is handled by assigning different misclassification costs to the two classes, e.g., $C_+$ and $C_-$ in the soft-margin constraints, or by per-sample weights in the primal/dual; this shifts the optimal margin to reflect asymmetric penalties and changes the operating point of the classifier. The raw SVM output $f(x)$ is a signed margin rather than a calibrated posterior probability; if probabilistic scores are required, a monotone post-hoc calibration such as Platt scaling or isotonic regression can be fitted on held-out data.
+Class imbalance is handled by assigning different misclassification costs to the two classes, for example, $C_+$ and $C_-$ in the soft-margin constraints, or by per-sample weights in the primal/dual; this shifts the optimal margin to reflect asymmetric penalties and changes the operating point of the classifier. The raw SVM output $f(x)$ is a signed margin rather than a calibrated posterior probability; if probabilistic scores are required, a monotone post-hoc calibration such as Platt scaling or isotonic regression can be fitted on held-out data.
 
-SVM training solves a convex quadratic program; modern implementations exploit decomposition or SMO-type methods for scalability, and linear SVM solvers are preferred in very high-dimensional sparse settings. Comprehensive expositions and practical guidance can be found in the standard references.
-
+SVM training solves a convex quadratic program; modern implementations exploit decomposition or SMO-type methods for scalability, and linear SVM solvers are preferred in very high-dimensional sparse settings \autocite{cortesSupportvectorNetworks1995b,scholkopfLearningKernelsSupport2001}.
 %\autocite{cortes1995,scholkopf2002,esl,hsu2003,platt1999}
 
 
