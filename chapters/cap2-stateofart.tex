@@ -63,13 +63,15 @@ To address this challenge, various machine learning techniques have been applied
 
 \subsection{Introduction to \acs{APODIS}}
 
-\ac{CIEMAT} uses the \ac{APODIS} algorithm, which is based on a \ac{SVM} model trained on historical discharge data. The model is designed to classify discharges as normal or anomalous based on the input parameters. The training process involves using labeled data, where each discharge is categorized as either normal or anomalous.
+\ac{CIEMAT} uses the \ac{APODIS} algorithm, which is based on a \ac{SVM} model trained on historical discharge data.\ \ac{SVM} is a machine learning algorithm whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. Further explanation of \ac{SVM} is provided in \autoref{sec:svm}.
+
+The model is designed to classify discharges as normal or anomalous based on the input parameters. The training process involves using labeled data, where each discharge is categorized as either normal or anomalous.
 
 The \ac{APODIS} algorithm uses the signals listed in \autoref{tab:apodis-signals}.
 
 \begin{table}[htbp]
   \centering
-  \caption{List of signals analysed in the APODIS algorithm}
+  \caption{List of signals analyzed in the \ac{APODIS} algorithm}
   \label{tab:apodis-signals}
   \begin{tabular}{@{}l c@{}}
     \toprule
@@ -86,8 +88,7 @@ The \ac{APODIS} algorithm uses the signals listed in \autoref{tab:apodis-signals
   \end{tabular}
 \end{table}
 
-\section{Machine Learning}
-\ac{SVM} is a machine learning algorithm whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. On the training phase, the model receives entire discharges as input, and the category of the discharge. Then, it divides data in windows of 32 milliseconds, and extracts the mean value and the \ac{FFT} of each window. On the prediction phase, the model receives a data stream, and fills a buffer to create a window. Then, it extracts the same features as in the training phase, and predicts the category of this window. If the model predicts an anomalous window, the discharge is classified as anomalous. This classification shall be done before the disruption occurs.
+The algorithm divides the discharge into windows of 16 milliseconds, and extracts the mean value and the \ac{FFT} of each window. On the prediction phase, the model receives a data stream, and fills a buffer to create a window. Then, it extracts the same features as in the training phase, and predicts the category of this window. If the model predicts an anomalous window, the discharge is classified as anomalous.
 
 There are some limitations to this approach. First, a window-based approach does not take into account the temporal dependencies of the data. This means that the model may not be able to capture the dynamics of the plasma behavior over time. Second, \ac{SVM} models with non-linear kernels have a complexity between $O(n^2)$ and $O(n^3)$, where $n$ is the number of training samples. This means that the model may not be able to scale to large datasets \autocite{kekulawalaSupportVectorMachines2024}. Third, even though \ac{SVM} models do not require a balanced dataset, the model could be biased towards the majority class, leading to a high false negative rate \autocite{10.1007/978-3-540-30115-8_7}. This is particularly important in this project, as the number of non-disruptive discharges is much higher than the number of disruptive discharges, as shown in \autoref{tab:campaigns}.
 
@@ -135,9 +136,49 @@ At each boosting iteration the new tree \(f_t\) is fitted to (an approximation o
 The model outputs \(p(x)\in[0,1]\), a monotone transformation of the margin \(F(x)\). Under class or sample reweighting (\(w_i\neq 1\)), \(p(x)\) should be interpreted as a sigmoidal score rather than a calibrated posterior probability; the operating point is therefore chosen on a held-out temporal validation set by selecting a decision threshold \(\tau\) for \(\hat{y}(x)=\mathbb{1}[p(x)\ge\tau]\) that optimizes the task metric \autocite{friedmanGreedyFunctionApproximation2000,chenXGBoostScalableTree2016}.
 
 
-\subsection{Support Vector Machine-based models}
+\subsection{Support Vector Machine-based models}\label{sec:svm}
 
-\ac{SVM} is a well-known algorithm in this category, but there are other algorithms that can be used as well. For example, \ac{OC-SVM} is a variant of \ac{SVM} that is trained on a single class of data (non-disruptive discharges), and generates a decision boundary that separates the normal data from the anomalies. This approach is particularly useful when the dataset highly imbalanced.
+Support Vector Machines construct a maximum-margin separating surface in a (possibly) high-dimensional feature space, obtained via a mapping $\phi:\mathcal{X}\to\mathcal{H}$. In the linearly separable (hard-margin) case, the primal problem reads
+\begin{equation}
+\min_{w,b}\;\tfrac12\lVert w\rVert^2
+\quad\text{s.t.}\quad
+y_i\bigl(\langle w,\phi(x_i)\rangle + b\bigr)\;\ge\;1,\;\; i=1,\dots,N.
+\label{eq:svm-hard-margin}
+\end{equation}
+For nonseparable data, slack variables $\xi_i\ge 0$ yield the soft-margin formulation
+\begin{equation}
+\begin{aligned}
+\min_{w,b,\xi}\;\tfrac12\lVert w\rVert^2 + C\sum_{i=1}^N\xi_i
+\quad\text{s.t.}\quad
+y_i\bigl(\langle w,\phi(x_i)\rangle + b\bigr)\;\ge\;1-\xi_i,\;\; i=1,\dots,N,
+\end{aligned}
+\label{eq:svm-soft-margin}
+\end{equation}
+which is equivalent to minimizing the regularized empirical hinge loss
+\begin{equation}
+\min_{w,b}\;\; \lambda \lVert w\rVert^2 + \sum_{i=1}^N \max\bigl(0,\,1 - y_i(\langle w,\phi(x_i)\rangle+b)\bigr),
+\quad \lambda=\tfrac{1}{2C}.
+\label{eq:svm-empirical-hinge}
+\end{equation}
+Introducing Lagrange multipliers $\alpha_i\in[0,C]$ leads to the dual problem
+\begin{equation}
+\max_{\alpha}\;\sum_{i=1}^N \alpha_i \;-\; \tfrac12\sum_{i,j=1}^N \alpha_i\alpha_j y_i y_j \,K(x_i,x_j)
+\quad\text{s.t.}\quad \sum_{i=1}^N \alpha_i y_i = 0,
+\label{eq:svm-dual}
+\end{equation}
+with kernel $K(x,x')=\langle \phi(x),\phi(x')\rangle$. Only training points with $\alpha_i>0$ (the \emph{support vectors}) contribute to the decision function
+\begin{equation}
+f(x) \;=\; \sum_{i=1}^N \alpha_i y_i K(x_i,x) + b,\qquad \hat{y}(x) = \mathrm{sign}\bigl(f(x)\bigr).
+\label{eq:svm-decision-function}
+\end{equation}
+Typical kernels include the linear kernel, the polynomial kernel $K(x,x')={(\langle x,x'\rangle + c)}^d$, and the Gaussian RBF kernel $K(x,x')=\exp(-\gamma\lVert x-x'\rVert^2)$, which implicitly realize large (even infinite)-dimensional feature mappings without explicit construction of $\phi$ (the ``kernel trick'').
+
+Class imbalance is handled by assigning different misclassification costs to the two classes, e.g., $C_+$ and $C_-$ in the soft-margin constraints, or by per-sample weights in the primal/dual; this shifts the optimal margin to reflect asymmetric penalties and changes the operating point of the classifier. The raw SVM output $f(x)$ is a signed margin rather than a calibrated posterior probability; if probabilistic scores are required, a monotone post-hoc calibration such as Platt scaling or isotonic regression can be fitted on held-out data.
+
+SVM training solves a convex quadratic program; modern implementations exploit decomposition or SMO-type methods for scalability, and linear SVM solvers are preferred in very high-dimensional sparse settings. Comprehensive expositions and practical guidance can be found in the standard references.
+
+%\autocite{cortes1995,scholkopf2002,esl,hsu2003,platt1999}
+
 
 \todo{SVM, OC-SVM}
 
