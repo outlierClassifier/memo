@@ -190,9 +190,9 @@ For compatibility reasons, every model must split discharges in windows of a fix
 
 \subsection{Supervised Binary Classification}
 
-\subsubsection{\acs{SVM}}\label{sec:svm}
+\subsubsection{\acs{SVM}: A Rust implementation of the \acs{APODIS} algorithm}\label{sec:svm}
 
-This project implements a \ac{SVM} model for anomaly detection, which is trained on both disruptive and non-disruptive discharges. The model is implemented in pure Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the comunication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation. 
+This project implements the \ac{APODIS} algorithm for anomaly detection as a starting comparison point. The model is implemented in pure Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the communication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation. 
 
 The model extracts two features from the discharges: the mean value of the plasma current and the \ac{FFT} of the plasma current. This model can be used to classify with a very low number of training samples, and it can also be used for real-time predictions.
 
@@ -284,6 +284,14 @@ The necessary parameters to create an XGBoost model with the \texttt{xgboost} li
 
 XGBoost predicts the probability of a window being disruptive, so a post-processing step is needed to determine if the discharge is disruptive or not. This post-processing step is done by the orchestrator, setting a threshold, which is set to 0.5 by default (50\% chance of being disruptive), and a number of consecutive windows that must be disruptive to consider the discharge as disruptive, which is set to 3 by default. This means that if 3 consecutive windows are above the threshold, the discharge is considered disruptive.
 
+It is important to note that the XGBoost uses \texttt{scale\_pos\_weight} parameter to balance the classes. This means that the model is trained to give more importance to the disruptive class, as it is the minority class in the dataset. This parameter sets the weight of the positive class (disruptive) to the ratio of negative to positive samples, which is calculated as 
+
+\begin{equation}
+    w_i = \frac{N_{neg}}{N_{pos}}
+    \label{eq:scale_pos_weight}
+\end{equation}
+
+This helps the model to learn better from the minority class and improve its performance. This value is approximately 11 for the C23 campaign, as there are 11 non-disruptive windows for each disruptive window.
 
 \subsubsection{CNN-FFT}
 

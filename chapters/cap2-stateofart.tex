@@ -109,6 +109,32 @@ Decision trees can be used for outlier detection by training the model on a sing
 
 If labelled data of both classes exist, standard decision-tree classifiers or ensembles (Random Forests, Gradient Boosting) can draw an explicit boundary between them. With sufficient minority class samples, these models usually outperform outlier detection models, as the tree learns exactly which feature ranges characterize each class rather than inferring a boundary from a single class. In practice, binary trees are common in fraud detection and network-intrusion datasets, where even a modest number of confirmed attack records allows the model to reach high recall without over-flagging harmless traffic \autocite{354051491,binary-classification-for-fraud-detection}.
 
+For this project, a \ac{GBDT} classifier with a logistic objective is employed. The ensemble produces an additive margin
+\[
+F(x)=\sum_{t=1}^{T} f_t(x),
+\]
+which is mapped to a sigmoidal score
+\begin{equation}
+p(x)=\sigma\big(F(x)\big)=\frac{1}{1+e^{-F(x)}}.
+\label{eq:gbdt-sigmoid}
+\end{equation}
+The regularized training objective is
+\begin{equation}
+\mathcal{L}(\{f_t\}) \;=\; \sum_{i=1}^{N} w_i\,\ell\!\left(y_i,\,F(x_i)\right) \;+\; \sum_{t=1}^{T} \Omega\!\left(f_t\right),
+\label{eq:gbdt-objective}
+\end{equation}
+where \(y_i\in\{0,1\}\) are labels, \(w_i>0\) are sample or class weights, \(\Omega(\cdot)\) penalizes tree complexity (e.g., number of leaves and \(L_2\) regularization of leaf values), and \(\ell\) is the logistic loss
+
+\begin{equation}
+\ell(y,F) \;=\; -\,y\,\log \sigma(F)\;-\;(1-y)\,\log\bigl(1-\sigma(F)\bigr).
+\label{eq:logistic-loss}
+\end{equation}
+
+At each boosting iteration the new tree \(f_t\) is fitted to (an approximation of) the negative gradient of the loss with respect to \(F\), typically using a second-order Taylor expansion to score candidate splits.
+
+The model outputs \(p(x)\in[0,1]\), a monotone transformation of the margin \(F(x)\). Under class or sample reweighting (\(w_i\neq 1\)), \(p(x)\) should be interpreted as a sigmoidal score rather than a calibrated posterior probability; the operating point is therefore chosen on a held-out temporal validation set by selecting a decision threshold \(\tau\) for \(\hat{y}(x)=\mathbb{1}[p(x)\ge\tau]\) that optimizes the task metric \autocite{friedmanGreedyFunctionApproximation2000,chenXGBoostScalableTree2016}.
+
+
 \subsection{Machine Vector Support based models}
 
 \ac{SVM} is a well-known algorithm in this category, but there are other algorithms that can be used as well. For example, \ac{OC-SVM} is a variant of \ac{SVM} that is trained on a single class of data (non-disruptive discharges), and generates a decision boundary that separates the normal data from the anomalies. This approach is particularly useful when the dataset highly imbalanced.
