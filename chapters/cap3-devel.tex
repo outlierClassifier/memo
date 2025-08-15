@@ -55,12 +55,15 @@ When the training is done, models must inform the orchestrator, as shown in \aut
 \end{figure}
 
 \subsection{Predict}
-\todo[inline]{Actualizar la figura de predict. En el outlier protocol no están puestas las features que se deben enviar.
-\href{https://github.com/outlierClassifier/outlier_protocol/issues/3}{GH issue 3}}
 
-The \texttt{predict} message is sent by the orchestrator to the alive models. It is a \texttt{POST} message to the \texttt{/predict} model endpoint and simulates online data. For this reason, models must send a prediction per window and the features that have been taken into account for the decision. Models must also report a \textit{justification} value, which is the confidence of that window to belong to a class.
+The \texttt{predict} message is sent by the orchestrator to the alive models. It is a \texttt{POST} message to the \texttt{/predict} model endpoint and simulates online data. For this reason, models must send a prediction per window and the features that have been taken into account for the decision. Models must also report a \textit{justification} value, which is the confidence of that window to belong to a class. This behavior is summarized in \autoref{fig:predict-message}.
 
-\missingfigure{Prediction response message sequence diagram}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{prediction.png}
+    \caption{Predict message sequence diagram}
+    \label{fig:predict-message}
+\end{figure}
 
 \section{Outlier Orchestrator}\label{sec:orchestrator}
 
@@ -388,16 +391,19 @@ This helps the model to learn better from the minority class and improve its per
 
 \subsection{Outlier Detection}
 
-This section explains outlier detection models that are implemented for the project. These models are only trained with non-disruptive discharges, and try to find common patterns between them. If a window differs more than a threshold from the pattern, it is labeled as disruptive.
+This section explains outlier detection models that are implemented for the project. These models are only trained with non-disruptive discharges, as shown in \autoref{lst:filter-discharges}, and try to find common patterns between them. If a window differs more than a threshold from the pattern, it is labeled as disruptive.
+
+\begin{lstlisting}[language=Python, caption={Filtering discharges on outlier detection models. Extracted from \ac{IForest} repository \autocite{OutlierClassifierPy_iforestPython}.}, label={lst:filter-discharges}]
+normal = [d for d in received_discharges if d.anomalyTime is None]
+\end{lstlisting}
 
 \subsubsection{\acs{OC-SVM}}
 
-\subsubsection{Isolation Forest}
+\subsubsection{Isolation Forest}\label{sec:iforest-implementation}
 
 The \ac{IForest} model is implemented in Python, using \texttt{sklearn} library for the model, and the \texttt{fastapi} framework for the API.\ As \texttt{sklearn} is used, if a \ac{GPU} is available, it will be used to improve training times.
 
 The feature extraction logic differs from other models. As this is a non supervised model, a rich set of features is used to enhance the model's performance. Basic statistics are extracted, like the mean and the standard deviation of each window, but also inter-signal features, like the ratio of the radiated power to the plasma current, the Greenwald density fraction, the locked mode norm, the inner inductance norm, and the beta loss.
-
 
 \begin{lstlisting}[language=Python, caption={Inter-signal features extraction}, label={lst:inter-signal-features}]
 for w_idx in range(n_windows):
@@ -419,6 +425,17 @@ for w_idx in range(n_windows):
         locked_mode_norm, inner_induct_norm, beta_loss
     ]
 \end{lstlisting}
+
+The configuration in \autoref{lst:iforest-config} instantiates the Isolation Forest described in the theory: a forest of $t=250$ trees (\texttt{n\_estimators}) where each tree is grown on the full training set, i.e., $\psi=n$ (\texttt{max\_samples}=1.0). For every window $x$, the estimator averages the path length $\mathbb{E}[h(x)]$ across trees and normalizes it by the expected length $c(\psi)$; the resulting score is then shifted so that \texttt{decision\_function}(x) is centered at zero—negative values correspond to shorter than expected paths (anomalies) and positive values to inliers. The parameter \texttt{contamination="auto"} determines this offset from the training data, and \texttt{random\_state=42} fixes the sampling sequence for reproducibility. This choice trades a modest increase in training cost, $\mathcal{O}(t\,n\log n)$, for more stable decisions (each tree sees the full feature distribution).
+
+\begin{lstlisting}[language=Python, caption={Isolation Forest model configuration}, label={lst:iforest-config}]
+    model = IsolationForest(random_state=42, 
+                            contamination="auto",
+                            n_estimators=250,
+                            max_samples=1.0).fit(X_array)
+\end{lstlisting}
+
+
 
 \subsubsection{\acs{LSTM}}
 

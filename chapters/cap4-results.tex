@@ -12,6 +12,7 @@ The main repositories available on the organization are \autocite{OutlierClassif
     \item \textbf{Outlier orchestrator:} This repository contains the orchestrator explained at \autoref{sec:orchestrator} \autocite{OutlierClassifierOutlier_orchestrator2025a}.
     \item \textbf{SVM:} This repository contains the implementation of the \ac{APODIS} algorithm in Rust, which is used as a starting point for comparison with other models \autocite{OutlierClassifierSvm2025}.
     \item \textbf{py\_xgboost:} This repository contains the implementation of the XGBoost model \autocite{OutlierClassifierPy_xgboost2025}.
+    \item \textbf{IForest:} This repository contains the implementation of the Isolation Forest model \autocite{OutlierClassifierPy_iforestPython}
 \end{itemize}
 
 \section{Model Analysis and optimization}
@@ -33,7 +34,7 @@ Discharges 75223 and 75581 are non-disruptive. The plasma current signal is repr
 
 \subsubsection{Disruptive Discharges: 75273 and 75485}
 
-Discharges 75273 and 75485 are disruptive discharges.\ \autoref{fig:ip_75273} and \autoref{fig:ip_75485} show the plasma current (in this case, in blue), compared with other similar C23 disruptive discharges.
+Discharges 75273 and 75485 are disruptive discharges.\ \autoref{fig:ip_75273} and \autoref{fig:ip_75485} show the plasma current (in this case, in blue), compared with other similar C23 disruptive discharges. But as can be seen in \autoref{fig:ip_75273}, discharge 75273 is similar to some of non-disruptive discharges, so this is a good example of a discharge that can be misclassified as non-disruptive by some models.
 
 \begin{figure}[H]
     \centering
@@ -47,6 +48,13 @@ Discharges 75273 and 75485 are disruptive discharges.\ \autoref{fig:ip_75273} an
     \includegraphics[width=\textwidth]{results/xgboost/75485_vs_C23.png}
     \caption{Plasma current on discharge 75485 (red) compared to similar C23 disruptive discharges}
     \label{fig:ip_75485}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest/75273_vs_C23.png}
+    \caption{Plasma current on discharge 75273 (blue) compared to similar C23 non-disruptive discharges}
+    \label{fig:iforest-75273-c23}
 \end{figure}
 
 \subsection{\acs{SVM}: \acs{APODIS} algorithm}
@@ -76,7 +84,7 @@ The \ac{APODIS} algorithm is a well known algorithm for anomaly detection in pla
     \label{fig:svm-75581}
 \end{figure}
 
-\autoref{fig:svm-75273} and \autoref{fig:svm-75485} show the predictions of the \ac{SVM} model for disruptive discharges 75273 and 75485, respectively. In both cases, the model triggers alerts, correctly identifying the discharges as anomalous. The alerts are triggered around window 200 for discharge 75273, and around window 300 for discharge 75485. But discharge 75273 is a rare case, as the model considers just a few windows as anomalous, 
+\autoref{fig:svm-75273} and \autoref{fig:svm-75485} show the predictions of the \ac{SVM} model for disruptive discharges 75273 and 75485, respectively. In both cases, the model triggers alerts, correctly identifying the discharges as anomalous. The alerts are triggered around window 200 for discharge 75273, and around window 300 for discharge 75485. At discharge 75273, model correctly identifies the discharge as disruptive, but, due to the limited training data, discharge returns to a non-disruptive state.  
 
 \begin{figure}[H]
     \centering
@@ -159,5 +167,71 @@ Discharge 75128 is a non-disruptive discharge, but \texttt{xgboost\_2} and \text
     \label{fig:xgboost-75128}
 \end{figure}
 
+\subsection{IForest}
 
+This section presents the results of the Isolation Forest model, which is explained in \autoref{sec:iforest-implementation}. This model is configured with the parameters shown in \autoref{fig:iforest-config}, where the \textit{justification threshold} is set to 0, and a \textit{count threshold} of 2 is used. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest.png}
+    \caption{Isolation Forest configuration}
+    \label{fig:iforest-config}
+\end{figure}
+
+
+The model is trained with the non-disruptive discharges from the C23 campaign, and outperforms the previous xgboost model in accuracy metrics, as it does not trigger false positives on non-disruptive discharges, but it has a lower lead time, as it triggers alerts later than the xgboost model.
+
+\autoref{fig:iforest-75223} and \autoref{fig:iforest-75581} show the predictions of the Isolation Forest model for non-disruptive discharges 75223 and 75581, respectively. In both cases, the model does not trigger any alert, correctly identifying these discharges as non-disruptive. On discharge 75223, the justification threshold is reached at the beginning of the discharge, but the model does not trigger an alert, as the \textit{count threshold} is not reached. This behavior highlights the importance of the \textit{count threshold} in reducing false positives, as the model is more conservative in its predictions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest/75223.png}
+    \caption{\ac{IForest} prediction for discharges 75223 (non-disruptive)}
+    \label{fig:iforest-75223}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest/75581.png}
+    \caption{\ac{IForest} prediction for discharges 75581 (non-disruptive)}
+    \label{fig:iforest-75581}
+\end{figure}
+
+\autoref{fig:iforest-75273}  shows the predictions of the Isolation Forest model for disruptive discharge 75273. In this case, model is not fast enough to trigger an alert. It can be seen that the model starts to increase the threshold value, and last window is labeled as anomalous, but the alert is not triggered until the end of the discharge. This behavior is caused because the model is trained with non-disruptive discharges, and as \autoref{fig:iforest-75273-c23} shows, this discharge shows a non-disruptive pattern until the end of the discharge. Discharge 75485 is correctly identified as disruptive, as shown in \autoref{fig:iforest-75485}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest/75273.png}
+    \caption{\ac{IForest} prediction for discharges 75273 (disruptive)}
+    \label{fig:iforest-75273}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest/75485.png}
+    \caption{\ac{IForest} prediction for discharges 75485 (disruptive)}
+    \label{fig:iforest-75485}
+\end{figure}
+
+\subsection{XGBoost vs Isolation Forest}
+
+XGboost and Isolation Forest are decision tree based models, but they have different approaches to anomaly detection. XGBoost uses a gradient boosting approach, where the model is trained with a set of features and tries to minimize the error in the predictions. On the other hand, Isolation Forest is an unsupervised model that tries to isolate anomalies by randomly selecting features and splitting the data.
+
+It has been already shown that XGBoost triggers a false positive on discharge 75128, while \autoref{fig:iforest-75128} demonstrates that Isolation Forest does not trigger any alert on this discharge, correctly identifying it as non-disruptive. This is because the Isolation Forest model is trained with non-disruptive discharges, and it is more conservative in its predictions, while XGBoost is more sensitive to disruptive discharges, leading to false positives. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest/75128.png}
+    \caption{\ac{IForest} prediction for discharge 75128}
+    \label{fig:iforest-75128}
+\end{figure}
+
+This behavior is clearly shown in \autoref{fig:iforest-vs-xgboost-75543}, which is a disruptive discharge, but whereas XGBoost triggers many alerts on the central part of the discharge, Isolation Forest is more conservative, and only triggers an alert at the end of the discharge.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/iforest_vs_xgboost/75543.png}
+    \caption{Comparison of XGBoost and Isolation Forest predictions for discharge 75543}
+    \label{fig:iforest-vs-xgboost-75543}
+\end{figure}
 
