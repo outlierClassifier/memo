@@ -26,7 +26,7 @@ The anomaly detection system is composed by independent nodes. There is a centra
 
 The outlier protocol is a custom protocol based on the OpenAPI specification. It is a simple protocol that describes how the orchestrator interacts with the model nodes, and is based on HTTP messages, which can be grouped into three main categories: \textit{health}, \textit{train}, and \textit{predict}.
 
-The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists on \todo{acotar} the discharge (delete everything before the beginning of the experiment, as sensors might be activated from before), and to \todo{remuestrear} data to a constant rate (1 or 2 ms accepted).
+The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists on triming the discharge data, removing data before the beginning of the experiment.
 
 \subsection{Health}
 
@@ -190,7 +190,7 @@ For compatibility reasons, every model must split discharges in windows of a fix
 
 \subsection{Supervised Binary Classification}
 
-\subsubsection{\acs{SVM}: A Rust implementation of the \acs{APODIS} algorithm}
+\subsubsection{\acs{SVM}: A Rust implementation of the \acs{APODIS} algorithm}\label{sec:svm-implementation}
 
 This project implements the \ac{APODIS} algorithm for anomaly detection as a starting comparison point. The model is implemented in pure Rust, implementing the outlier protocol using the \texttt{actix\_server} framework for the communication with the orchestrator's backend, and the \texttt{linfa} crate for the \ac{SVM} implementation.
 
@@ -284,6 +284,8 @@ The prediction process is done for each window, and the model returns a boolean 
         });
     }
 \end{lstlisting}
+
+It is important to note that the \ac{APODIS} algorithm does not specify which kernel to use, so the Gaussian kernel is used as a default. This kernel is a common choice for \ac{SVM} models, as it allows creating non-linear decision boundaries. But, as shown in \autoref{eq:svm-dual}, training consists on solving the dual problem, which is a quadratic programming problem. This means that training time is proportional to the number of discharges and the number of windows per discharge, which can lead to long training times for large datasets. With the available hardware for the project, it is not possible to train the model with all the C23 campaigns, as it would require 4.6376 Terabytes of RAM, which is not feasible. For this reason, model is trained with a subset of the discharges, which may lead to a loss of accuracy.
 
 \subsubsection{XGBoost}\label{subsubsec:xgboost}
 
@@ -394,7 +396,29 @@ This section explains outlier detection models that are implemented for the proj
 
 The \ac{IForest} model is implemented in Python, using \texttt{sklearn} library for the model, and the \texttt{fastapi} framework for the API.\ As \texttt{sklearn} is used, if a \ac{GPU} is available, it will be used to improve training times.
 
-This model extracts some relevant features from windows, which include statistical data (mean value, standard deviation, minimum, maximum and range)
+The feature extraction logic differs from other models. As this is a non supervised model, a rich set of features is used to enhance the model's performance. Basic statistics are extracted, like the mean and the standard deviation of each window, but also inter-signal features, like the ratio of the radiated power to the plasma current, the Greenwald density fraction, the locked mode norm, the inner inductance norm, and the beta loss.
+
+
+\begin{lstlisting}[language=Python, caption={Inter-signal features extraction}, label={lst:inter-signal-features}]
+for w_idx in range(n_windows):
+    mean_vals = [float(np.mean(sig.values[start:end])) for sig in discharge.signals]
+
+    Ip_MA = mean_vals[0] * 1e-6
+    n_1e20 = mean_vals[3] * 1e-20
+
+    # Inter signal features.
+    A_MINOR = 0.95 / 2.0  # Minor radius of the JET tokamak in meters. Used in the Greenwald limit.
+    rad_power_ratio = mean_vals[5] / mean_vals[6] if mean_vals[6] != 0.0 else 0.0
+    greenwald_density_frac = n_1e20 / (Ip_MA / (np.pi * A_MINOR**2)) if Ip_MA != 0.0 else 0.0
+    locked_mode_norm = mean_vals[1] / Ip_MA if Ip_MA != 0.0 else 0.0
+    inner_induct_norm = mean_vals[2] / Ip_MA if Ip_MA != 0.0 else 0.0
+    beta_loss = abs(mean_vals[5]) / mean_vals[6] if mean_vals[6] != 0.0 else 0.0
+
+    inter_features = [
+        rad_power_ratio, greenwald_density_frac,
+        locked_mode_norm, inner_induct_norm, beta_loss
+    ]
+\end{lstlisting}
 
 \subsubsection{\acs{LSTM}}
 

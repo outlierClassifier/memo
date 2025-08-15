@@ -10,42 +10,19 @@ The main repositories available on the organization are \autocite{OutlierClassif
 
 \begin{itemize}
     \item \textbf{Outlier orchestrator:} This repository contains the orchestrator explained at \autoref{sec:orchestrator} \autocite{OutlierClassifierOutlier_orchestrator2025a}.
+    \item \textbf{SVM:} This repository contains the implementation of the \ac{APODIS} algorithm in Rust, which is used as a starting point for comparison with other models \autocite{OutlierClassifierSvm2025}.
     \item \textbf{py\_xgboost:} This repository contains the implementation of the XGBoost model \autocite{OutlierClassifierPy_xgboost2025}.
 \end{itemize}
 
 \section{Model Analysis and optimization}
 
-This section provides an analysis of the models implemented in this project, focusing on their performance metrics and the optimization techniques applied to enhance their accuracy and efficiency. To do so, some discharges from the C24 campaign are selected for a deep analysis. These discharges are representative of different operational scenarios and include both normal and anomalous events. 
+This section provides an analysis of the models implemented in this project, focusing on their performance metrics and the optimization techniques applied to enhance their accuracy and efficiency. To do so, some discharges from the C24 campaign are selected for a deep analysis. These discharges are representative of different operational scenarios and include both normal and anomalous events.
 
-\subsection{\acs{SVM}: \acs{APODIS} algorithm}
-
-The \ac{APODIS} algorithm is a well known algorithm for anomaly detection in plasma discharges. It is important to note that this project does not aim to improve the \ac{APODIS} algorithm, but to implement it to compare its performance with other models.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{results/svm.png}
-    \caption{SVM configuration}
-    \label{fig:svm-config}
-\end{figure}
-
-\subsection{XGBoost}
-
-XGBoost implementation uses the features described in \autoref{subsubsec:xgboost}, which includes features from the current window and past windows as a tendency. This approach allows the model to have a better understanding of the discharge behavior over time, but also makes the model more rigid to changes in the discharge pattern. Additionally, model is trained with the C23 campaign and tested with the C24 campaign, which leads to a model that detects anomalies in the C24 campaign, but with some false positives because of the differences between the two campaigns, as explained in \autoref{apx:campaigns}. To reduce the false positives, orchestrator is configured to use a \textit{count threshold}, which means that more than one window must be labeled as anomalous in order to trigger an alert. 
-
-Using the microservice approach, two XGBoost models are deployed, both with the same C23 training data, but while \texttt{xgboost\_2} uses a \textit{count threshold} of 2, \texttt{xgboost\_3} uses a \textit{count threshold} of 3. The automated predicts configuration is shown in \autoref{fig:xgboost-config}.
-
-Increasing the \textit{count threshold} highly reduces the number of false positives, but also increases the lead time, as more windows must be labeled as anomalous before triggering an alert. With this settings, both models detect anomalies with any false negatives, but with some false positives, as explained in the next sections.
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{results/xgboost.png}
-    \caption{XGBoost configuration}
-    \label{fig:xgboost-config}
-\end{figure}
+\subsection{Validation discharges}
 
 \subsubsection{Non-disruptive discharges: 75223 and 75581}
 
-Discharges 75223 and 75581 are non-disruptive. The plasma current signal is represented in blue for 75223 and orange for 75581 at \autoref{fig:ip_75223_75581}, compared with other similar C23 signals, used by the model to trigger anomaly alerts.\ \autoref{fig:xgboost-75223} shows both models predictions for discharge 75223, where the \texttt{xgboost\_2} alerts are represented in green, while the \texttt{xgboost\_3} alerts are in pink. There are also lines that reach the maximum value, and represent when the threshold has been reached. As can be seen, the \texttt{xgboost\_2} model triggers an alert around window 700, while the \texttt{xgboost\_3} model does not trigger any alert.\ \autoref{fig:xgboost-75581} shows the predictions for discharge 75581, where none of the models trigger an alert, as expected, since this is a non-disruptive discharge.
+Discharges 75223 and 75581 are non-disruptive. The plasma current signal is represented in blue for 75223 and orange for 75581 at \autoref{fig:ip_75223_75581}, compared with other similar C23 signals, used by the model to trigger anomaly alerts.
 
 \begin{figure}[H]
     \centering
@@ -54,23 +31,9 @@ Discharges 75223 and 75581 are non-disruptive. The plasma current signal is repr
     \label{fig:ip_75223_75581}
 \end{figure}
 
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{results/xgboost/75223.png}
-    \caption{XGBoost prediction for discharge 75223}
-    \label{fig:xgboost-75223}
-\end{figure}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=\textwidth]{results/xgboost/75581.png}
-    \caption{XGBoost prediction for discharge 75581}
-    \label{fig:xgboost-75581}
-\end{figure}
-
 \subsubsection{Disruptive Discharges: 75273 and 75485}
 
-Discharges 75273 and 75485 are disruptive discharges.\ \autoref{fig:ip_75273} and \autoref{fig:ip_75485} show the plasma current (in this case, in blue), compared with other similar C23 disruptive discharges.\ \autoref{fig:xgboost-75273} and \autoref{fig:xgboost-75485} show the predictions of both models for these discharges. In this case, both models trigger many alerts (\texttt{xgboost\_3} alerts are on top of \texttt{xgboost\_2} alerts), correctly identifying the discharges as anomalous.
+Discharges 75273 and 75485 are disruptive discharges.\ \autoref{fig:ip_75273} and \autoref{fig:ip_75485} show the plasma current (in this case, in blue), compared with other similar C23 disruptive discharges.
 
 \begin{figure}[H]
     \centering
@@ -86,17 +49,93 @@ Discharges 75273 and 75485 are disruptive discharges.\ \autoref{fig:ip_75273} an
     \label{fig:ip_75485}
 \end{figure}
 
+\subsection{\acs{SVM}: \acs{APODIS} algorithm}
+
+The \ac{APODIS} algorithm is a well known algorithm for anomaly detection in plasma discharges. It is important to note that this project does not aim to improve the \ac{APODIS} algorithm, but to implement it to compare its performance with other models.\ \autoref{fig:svm-config} shows the configuration for the \ac{SVM} model, which uses the default threshold of 0, and no \textit{count threshold}. As \autoref{sec:svm-implementation} describes, this model is not trained with the C23 campaign, but with a subset of the discharges, so these results are not directly comparable with the other models and shall be interpreted as a reference point.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/svm.png}
+    \caption{SVM configuration}
+    \label{fig:svm-config}
+\end{figure}
+
+\autoref{fig:svm-75223} and \autoref{fig:svm-75581} show the predictions of the \ac{SVM} model for discharges 75223 and 75581, respectively. In both cases, the model does not trigger any alert, as expected, since these are non-disruptive discharges. Even though, the distance to the separation hyperplane becomes narrow on window 300 for discharge 75223. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/svm/75223.png}
+    \caption{SVM prediction for discharge 75223 (non-disruptive)}
+    \label{fig:svm-75223}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/svm/75581.png}
+    \caption{SVM prediction for discharge 75581 (non-disruptive)}
+    \label{fig:svm-75581}
+\end{figure}
+
+\autoref{fig:svm-75273} and \autoref{fig:svm-75485} show the predictions of the \ac{SVM} model for disruptive discharges 75273 and 75485, respectively. In both cases, the model triggers alerts, correctly identifying the discharges as anomalous. The alerts are triggered around window 200 for discharge 75273, and around window 300 for discharge 75485. But discharge 75273 is a rare case, as the model considers just a few windows as anomalous, 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/svm/75273.png}
+    \caption{SVM prediction for discharge 75273 (disruptive)}
+    \label{fig:svm-75273}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/svm/75485.png}
+    \caption{SVM prediction for discharge 75485 (disruptive)}
+    \label{fig:svm-75485}
+\end{figure}
+
+\subsection{XGBoost}
+
+XGBoost implementation uses the features described in \autoref{subsubsec:xgboost}, which includes features from the current window and past windows as a tendency. This approach allows the model to have a better understanding of the discharge behavior over time, but also makes the model more rigid to changes in the discharge pattern. Additionally, model is trained with the C23 campaign and tested with the C24 campaign, which leads to a model that detects anomalies in the C24 campaign, but with some false positives because of the differences between the two campaigns, as explained in \autoref{apx:campaigns}. To reduce the false positives, orchestrator is configured to use a \textit{count threshold}, which means that more than one window must be labeled as anomalous in order to trigger an alert. 
+
+Using the microservice approach, two XGBoost models are deployed, both with the same C23 training data, but while \texttt{xgboost\_2} uses a \textit{count threshold} of 2, \texttt{xgboost\_3} uses a \textit{count threshold} of 3. The automated predicts configuration is shown in \autoref{fig:xgboost-config}.
+
+Increasing the \textit{count threshold} highly reduces the number of false positives, but also increases the lead time, as more windows must be labeled as anomalous before triggering an alert. With these settings, both models detect anomalies with any false negatives, but with some false positives, as explained in the next sections.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/xgboost.png}
+    \caption{XGBoost configuration}
+    \label{fig:xgboost-config}
+\end{figure}
+
+\autoref{fig:xgboost-75223} shows both models predictions for discharge 75223, where the \texttt{xgboost\_2} alerts are represented in green, while the \texttt{xgboost\_3} alerts are in pink. There are also lines that reach the maximum value, and represent when the threshold has been reached. As can be seen, the \texttt{xgboost\_2} model triggers an alert around window 700, while the \texttt{xgboost\_3} model does not trigger any alert.\ \autoref{fig:xgboost-75581} shows the predictions for discharge 75581, where none of the models trigger an alert, as expected, since this is a non-disruptive discharge.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/xgboost/75223.png}
+    \caption{XGBoost prediction for discharge 75223 (non-disruptive)}
+    \label{fig:xgboost-75223}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/xgboost/75581.png}
+    \caption{XGBoost prediction for discharge 75581 (non-disruptive)}
+    \label{fig:xgboost-75581}
+\end{figure}
+
+\autoref{fig:xgboost-75273} and \autoref{fig:xgboost-75485} show the predictions of both models for disruptive discharges. In this case, both models trigger many alerts (\texttt{xgboost\_3} alerts are on top of \texttt{xgboost\_2} alerts), correctly identifying the discharges as anomalous.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{results/xgboost/75273.png}
-    \caption{XGBoost prediction for discharge 75273}
+    \caption{XGBoost prediction for discharge 75273 (disruptive)}
     \label{fig:xgboost-75273}
 \end{figure}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{results/xgboost/75485.png}
-    \caption{XGBoost prediction for discharge 75485}
+    \caption{XGBoost prediction for discharge 75485 (disruptive)}
     \label{fig:xgboost-75485}
 \end{figure}
 
