@@ -36,7 +36,7 @@ A \textit{Campaign} is a set of discharges that are analyzed together. For this 
         S[table-format=1.2]@{\,}  % Rate
     }
     \toprule
-    \textbf{Campaign} & \textbf{Discharges} & \textbf{Disruptive} & \textbf{Non--Disruptive} & \textbf{Disruptive Rate} \\
+    \textbf{Campaign} & \textbf{Discharges} & \textbf{Disruptive} & \textbf{Non--Disruptive} & \textbf{Disruption Rate} \\
     \midrule
     C23 & 522 & 32 & 490 & 6.13 \ \% \\
     C24 & 388 & 26 & 362 & 6.70 \ \% \\
@@ -98,6 +98,8 @@ The algorithm divides the discharge into windows of 16 milliseconds, and extract
 
 The \ac{APODIS} algorithm is a highly effective tool for detecting anomalies. The features extracted from the discharge data allow the model to capture the dynamics of the plasma behavior, that clearly differ between disruptive and non-disruptive discharges, as shown in \autoref{fig:psd}, where x-axis represents the frequency in Hz, and the y-axis represents the power spectral density in dB. The blue line represents the mean value for non-disruptive discharges, and the orange line represents the mean value for disruptive discharges. Scattered points represent the individual values for each disruptive discharge on the last window before the disruption.
 
+Effectiveness of the \ac{APODIS} features are explained due to their physical meaning. On the one hand, the mean value of the signals captures the average behavior of the plasma during the discharge, which is useful for detecting anomalies that affect the overall plasma behavior. On the other hand, the \ac{FFT} captures the global growth of plasma fluctuations, which is associated to \ac{MHD} instabilities \autocite{liMHDInstabilityDynamics2023}.
+
 \begin{figure}[htbp]
   \begin{subfigure}{.5\textwidth}
     \centering
@@ -145,7 +147,7 @@ The \ac{APODIS} algorithm is a highly effective tool for detecting anomalies. Th
   \label{fig:psd}
 \end{figure}
 
-There are some limitations to this approach. First, a window-based approach does not take into account the temporal dependencies of the data. This means that the model may not be able to capture the dynamics of the plasma behavior over time. Second, \ac{SVM} models with non-linear kernels have a complexity between $O(n^2)$ and $O(n^3)$, where $n$ is the number of training samples. This means that the model may not be able to scale to large datasets \autocite{kekulawalaSupportVectorMachines2024}. Third, even though \ac{SVM} models do not require a balanced dataset, the model could be biased towards the majority class, leading to a high false negative rate \autocite{10.1007/978-3-540-30115-8_7}. This is particularly important in this project, as the number of non-disruptive discharges is much higher than the number of disruptive discharges, as shown in \autoref{tab:campaigns}.
+Even though, there are some limitations to this approach. First, a window-based approach does not take into account large temporal dependencies of the data. This means that the model may not be able to capture the dynamics of the plasma behavior over time. Second, \ac{SVM} models with non-linear kernels have a complexity between $O(n^2)$ and $O(n^3)$, where $n$ is the number of training samples. This means that the model may not be able to scale to large datasets \autocite{kekulawalaSupportVectorMachines2024}. Third, even though \ac{SVM} models do not require a balanced dataset, the model could be biased towards the majority class, leading to a high false negative rate \autocite{10.1007/978-3-540-30115-8_7}. This is particularly important in this project, as the number of non-disruptive discharges is much higher than the number of disruptive discharges, as shown in \autoref{tab:campaigns}.
 
 \section{Alternative approaches}
 
@@ -252,7 +254,35 @@ SVM training solves a convex quadratic program; modern implementations exploit d
 
 \todo{SVM, OC-SVM}
 
-\subsection{Deep learning models}
-% LSTM & CNN
+\subsubsection{Convolutional Neural Networks}\label{sec:cnn}
 
-\todo{LSTM, CNN, Autoencoders}
+\ac{CNN} are deep architectures that learn local filters shared across time, forming hierarchical feature extractors well suited to multichannel tokamak diagnostics. Their key inductive bias is translation equivariance: a precursor with the same local morphology is detected regardless of its absolute time within a discharge, which is desirable for early identification of \ac{MHD} activity.
+
+Consider a window $x \in \mathbb{R}^{C \times T}$ of $C$ synchronized signals and $T$ samples. A bank of $M$ one-dimensional filters $K \in \mathbb{R}^{M \times C \times L}$ with optional dilation $d \in \mathbb{N}$ produces
+\begin{equation}
+z_{m}[t] \;=\; \sum_{c=1}^{C}\sum_{\ell=0}^{L-1} K_{m,c,\ell}\; x_{c}[\,t + d\,\ell\,] \;+\; b_{m},
+\qquad m=1,\dots,M,
+\label{eq:conv1d}
+\end{equation}
+followed by pointwise nonlinearities $y_m[t]=\phi(z_m[t])$. Denoting the discrete shift operator $(\mathcal{T}_\Delta x)[t]=x[t-\Delta]$, a convolutional layer $\mathcal{F}$ satisfies
+\begin{equation}
+\mathcal{F}\!\big(\mathcal{T}_\Delta x\big)\;=\;\mathcal{T}_\Delta\!\big(\mathcal{F}(x)\big),
+\label{eq:equivariance}
+\end{equation}
+which explains why shared local kernels are effective to detect precursors irrespective of their position in time. Stacking layers, and optionally using dilation, enlarges the effective receptive field so that both short-lived bursts and longer build-ups can be represented within the same network depth.
+
+When diagnostics are projected to the time-frequency plane, e.g.\ through the short-time Fourier transform (\ac{STFT}),
+\begin{equation}
+X(\tau,\omega)\;=\;\int_{-\infty}^{\infty} x(t)\, w(t-\tau)\, e^{-\,\mathrm{i}\,\omega t}\,\mathrm{d}t,
+\label{eq:stft}
+\end{equation}
+the magnitude (often log-magnitude) spectrogram $|X(\tau,\omega)|$ becomes a two-dimensional tensor. In this representation, early \ac{MHD} activity tends to manifest as band-localized energy growth and evolving inter-band couplings; two-dimensional \ac{CNN}s learn filters that are selective to such patterns across frequency and time.
+
+For binary detection, a \ac{CNN} outputs a probability $p\in(0,1)$ for a window to be disruptive. Class imbalance can be addressed during training with a weighted cross-entropy,
+\begin{equation}
+\mathcal{L}\;=\;-\frac{1}{N}\sum_{n=1}^{N}\Big[\,w_1\, y_n\log p_n \;+\; w_0\,(1-y_n)\log(1-p_n)\,\Big],
+\label{eq:weighted_bce}
+\end{equation}
+where $y_n\in\{0,1\}$ are labels, $p_n$ the predicted probabilities, and $w_1,w_0>0$ the class weights. This objective couples naturally with convolutional feature extractors in either the time domain (Eq.~\eqref{eq:conv1d}) or the time-frequency domain (Eq.~\eqref{eq:stft}).
+
+Empirically, \ac{CNN}-based predictors have demonstrated accurate and low-latency disruption detection on \ac{JET} using spatiotemporal profiles and spectrograms, and on \ac{EAST} using fully convolutional models over raw multichannel time series, without the need for hand-crafted features \cite{aymerichCNNDisruptionPredictor2023,guoDisruptionPredictionUsing2020}.

@@ -26,7 +26,7 @@ The anomaly detection system is composed by independent nodes. There is a centra
 
 The outlier protocol is a custom protocol based on the OpenAPI specification. It is a simple protocol that describes how the orchestrator interacts with the model nodes, and is based on HTTP messages, which can be grouped into three main categories: \textit{health}, \textit{train}, and \textit{predict}.
 
-The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists on triming the discharge data, removing data before the beginning of the experiment.
+The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists off trimming the discharge data, removing data before the beginning of the experiment.
 
 \subsection{Health}
 
@@ -69,7 +69,7 @@ The \texttt{predict} message is sent by the orchestrator to the alive models. It
 
 The outlier orchestrator is the central node of the anomaly detection system. It is responsible for managing the data flow between the model nodes, using the outlier protocol to communicate with them.
 
-The orchestrator consists on a frontend and a backend. The frontend is a web application that allows users to interact with the system, while the backend is responsible for managing the data flow and the communication with the model nodes.
+The orchestrator consists off a frontend and a backend. The frontend is a web application that allows users to interact with the system, while the backend is responsible for managing the data flow and the communication with the model nodes.
 
 The frontend is built using HTML, CSS, and JavaScript, and provides a user-friendly interface for managing the models and the data. It allows users to start and stop the models, view the health status of the models, and visualize the results of the anomaly detection.
 
@@ -79,7 +79,7 @@ Communication between the frontend and the backend is done throw \texttt{Socket.
 
 \subsection{Frontend}
 
-The frontend main page is shown in \autoref{fig:frontend-main}. There are two main panels: the top panel shows the available models, and the bottom panel consists on four tabs: \textit{Prediction}, \textit{Training}, \textit{History}, and \textit{Preview}.
+The frontend main page is shown in \autoref{fig:frontend-main}. There are two main panels: the top panel shows the available models, and the bottom panel consists off four tabs: \textit{Prediction}, \textit{Training}, \textit{History}, and \textit{Preview}.
 
 \begin{figure}[H]
     \centering
@@ -288,7 +288,7 @@ The prediction process is done for each window, and the model returns a boolean 
     }
 \end{lstlisting}
 
-It is important to note that the \ac{APODIS} algorithm does not specify which kernel to use, so the Gaussian kernel is used as a default. This kernel is a common choice for \ac{SVM} models, as it allows creating non-linear decision boundaries. But, as shown in \autoref{eq:svm-dual}, training consists on solving the dual problem, which is a quadratic programming problem. This means that training time is proportional to the number of discharges and the number of windows per discharge, which can lead to long training times for large datasets. With the available hardware for the project, it is not possible to train the model with all the C23 campaigns, as it would require 4.6376 Terabytes of RAM, which is not feasible. For this reason, model is trained with a subset of the discharges, which may lead to a loss of accuracy.
+It is important to note that the \ac{APODIS} algorithm does not specify which kernel to use, so the Gaussian kernel is used as a default. This kernel is a common choice for \ac{SVM} models, as it allows creating non-linear decision boundaries. But, as shown in \autoref{eq:svm-dual}, training consists off solving the dual problem, which is a quadratic programming problem. This means that training time is proportional to the number of discharges and the number of windows per discharge, which can lead to long training times for large datasets. With the available hardware for the project, it is not possible to train the model with all the C23 campaigns, as it would require 4.6376 Terabytes of RAM, which is not feasible. For this reason, model is trained with a subset of the discharges, which may lead to a loss of accuracy.
 
 \subsubsection{XGBoost}\label{subsubsec:xgboost}
 
@@ -387,7 +387,43 @@ It is important to note that the XGBoost uses \texttt{scale\_pos\_weight} parame
 
 This helps the model to learn better from the minority class and improve its performance. This value is approximately 11 for the C23 campaign, as there are 11 non-disruptive windows for each disruptive window.
 
-\subsubsection{CNN-FFT}
+\subsubsection{\acs{CNN} pipeline}\label{sec:cnn-implementation}
+
+This model implements a \ac{CNN} pipeline for anomaly detection, which is inspired by the \ac{APODIS} algorithm. It uses the \ac{FFT} idea introduced by \ac{APODIS}, but extends it with inter-signal features. This can be done because \ac{CNN}s scalability is better than SVM one \todo{ref}.\ \autoref{lst:inter-signal-features} shows the feature extraction logic, which computes a set of physics-informed descriptors that summarize key ratios and cross-diagnostic evolution that intensify before disruptions: radiated-to-input power fraction, Greenwald fraction, loop-voltage and internal inductance normalized by plasma current, energy-loss rate versus input power, cross-channel dispersion, a log-energy measure, and short-term deltas of selected ratios.
+
+\begin{lstlisting}[language=Python, caption={Inter-signal feature vector used for early coupling and trend capture.}, label={lst:inter-signal-features}]
+def inter_signal_features(win_raw, prev_logs):
+    Ip, LM, LI, NE, dWdt, Prad, Pin = np.mean(win_raw, axis=1)
+    Ip_MA   = Ip * 1e-6
+    ne_1e20 = NE * 1e-20
+
+    rad_frac  = Prad / (Pin + 1e-12)
+    greenwald = (ne_1e20) / ( (Ip_MA / (np.pi * A_MINOR**2)) + 1e-12 )
+    LM_norm   = abs(LM) / (abs(Ip_MA) + 1e-12)
+    li_norm   = LI      / (abs(Ip_MA) + 1e-12)
+    beta_loss = abs(dWdt) / (abs(Pin) + 1e-12)
+
+    cross_std = float(np.std([Ip, LM, LI, NE, dWdt, Prad, Pin]))
+    logE      = float(np.log1p(np.mean(win_raw.astype(np.float64) ** 2)))
+
+    L_rad  = np.log1p(max(0.0, rad_frac))
+    L_gw   = np.log1p(max(0.0, greenwald))
+    L_lm   = np.log1p(LM_norm)
+    L_li   = np.log1p(abs(li_norm))
+    L_beta = np.log1p(beta_loss)
+
+    d_rad, d_beta = (0.0, 0.0) if prev_logs is None else (
+        L_rad - prev_logs[0], L_beta - prev_logs[1])
+
+    feat = np.array([L_rad, L_gw, L_lm, L_li, L_beta,
+                     cross_std, logE, d_rad, d_beta], dtype=np.float32)
+    return feat, (L_rad, L_beta)
+\end{lstlisting}
+
+Time-to-event emphasis is introduced through label and sample-weight shaping around the disruption instant, giving higher weight to windows close to the event while keeping informative post-event segments at a controlled floor. This implements a cost-sensitive objective compatible with the weighted cross-entropy in \autoref{sec:cnn} without changing the loss form.
+
+A complementary spectrogram branch processes $|X_c(\tau,\omega)|$ built with the \ac{STFT} from each channel and concatenated along the channel axis. This design is motivated by the documented contribution of \ac{MHD} spectrogram content to predictive power and by the benefits of spatiotemporal structure on \ac{JET}. In practice, early fusion in the spectro-temporal plane enables band-selective and inter-band filters that track fluctuation growth preceding thermal and current quenches \cite{aymerichMHDSpectrogramContribution2024,aymerichDisruptionPredictionJET2022}. Finally, deployment uses the exported $\tau$ in combination with a per-shot aggregator, in line with the conservative decision logic reported for \ac{APODIS} \cite{dormido-cantoDevelopmentEfficientRealtime2013}.
+
 
 \subsection{Outlier Detection}
 
@@ -437,5 +473,5 @@ The configuration in \autoref{lst:iforest-config} instantiates the Isolation For
 
 
 
-\subsubsection{\acs{LSTM}}
+% \subsubsection{\acs{LSTM}}
 

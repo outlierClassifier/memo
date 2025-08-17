@@ -12,7 +12,8 @@ The main repositories available on the organization are \autocite{OutlierClassif
     \item \textbf{Outlier orchestrator:} This repository contains the orchestrator explained at \autoref{sec:orchestrator} \autocite{OutlierClassifierOutlier_orchestrator2025a}.
     \item \textbf{SVM:} This repository contains the implementation of the \ac{APODIS} algorithm in Rust, which is used as a starting point for comparison with other models \autocite{OutlierClassifierSvm2025}.
     \item \textbf{py\_xgboost:} This repository contains the implementation of the XGBoost model \autocite{OutlierClassifierPy_xgboost2025}.
-    \item \textbf{IForest:} This repository contains the implementation of the Isolation Forest model \autocite{OutlierClassifierPy_iforestPython}
+    \item \textbf{py\_iforest:} This repository contains the implementation of the Isolation Forest model \autocite{OutlierClassifierPy_iforestPython}.
+    \item \textbf{py\_cnn\_fft:} This repository contains the implementation of the CNN-FFT model \autocite{OutlierClassifierPy_cnn_fftCNN}.
 \end{itemize}
 
 \section{Model Analysis and optimization}
@@ -237,6 +238,10 @@ This behavior is clearly shown in \autoref{fig:iforest-vs-xgboost-75543}, which 
 
 \subsubsection{CNN-FFT}
 
+The results of the CNN-FFT model are presented in this section. This model is heavily based on plasma physics, by the feature extraction logic presented in \autoref{sec:cnn-implementation}. This features, combined with the \ac{CNN} architecture, outperforms the previous models in terms of accuracy, but it is more complex to implement and requires more computational resources. The model is trained with the C23 campaign, and tested with the C24 campaign, as the previous models.
+
+The configuration of the CNN-FFT model is shown in \autoref{fig:cnn-fft-config}. The model uses a \textit{count threshold} of 2 to reduce false positives, and a \textit{justification threshold} of 0.85, which means that the model must reach a confidence of 85\% to trigger an alert. This is a high threshold, but it is affordable due to the high accuracy of the model.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{results/cnn_fft.png}
@@ -244,6 +249,7 @@ This behavior is clearly shown in \autoref{fig:iforest-vs-xgboost-75543}, which 
     \label{fig:cnn-fft-config}
 \end{figure}
 
+At \autoref{fig:cnn-fft-75223}, the predictions of the CNN-FFT model for discharge 75223 are shown. In this case, the model detects an unusual pattern at window 300, but does not trigger an alert, as the \textit{count threshold} is not reached. For discharge 75581, prediction show a near-to-zero disruption probability, as expected, since this is a non-disruptive discharge, as shown in \autoref{fig:cnn-fft-75581}.
 
 \begin{figure}[H]
     \centering
@@ -259,6 +265,8 @@ This behavior is clearly shown in \autoref{fig:iforest-vs-xgboost-75543}, which 
     \label{fig:cnn-fft-75581}
 \end{figure}
 
+For disruptive discharges, the model is able to detect the anomalies with a high lead time.\ \autoref{fig:cnn-fft-75273} shows the predictions for discharge 75273, where the model triggers an alert at window 900, while \autoref{fig:cnn-fft-75485} shows the predictions for discharge 75485, where the model triggers an alert at window 1100.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{results/cnn_fft/75273.png}
@@ -272,4 +280,11 @@ This behavior is clearly shown in \autoref{fig:iforest-vs-xgboost-75543}, which 
     \caption{CNN-FFT prediction for discharge 75485 (disruptive)}
     \label{fig:cnn-fft-75485}
 \end{figure}
+
+Compared to the previous models, the CNN-FFT model detects anomalies with a higher lead time than \ac{IForest}, and with a much lower false positive rate than XGBoost. This robustness is achieved by the physics-informed features, which guarantee similar robustness to the \ac{APODIS} algorithm, but with a much lower training time.
+
+\subsection{Comparison of models}
+
+
+
 
