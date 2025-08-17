@@ -21,7 +21,7 @@ The \ac{CIEMAT} is Spain's representative in \ac{EURATOM}'s fusion program, whic
 
 A \textit{Discharge} is a plasma operation in the tokamak, where the plasma is created and maintained for a certain period. Each discharge is characterized by various parameters, such as plasma current, inductance, density, radiated power or input power. When these parameters deviate from their expected values, it can indicate potential issues or anomalies in the reactor's operation.
 
-A \textit{Disruption} is an event that occurs when the plasma becomes unstable and loses confinement, leading to a rapid cooling of the plasma and a loss of control. For this project, discharges are classified as either disruptive or non-disruptive.
+A \textit{Disruption} is an event that occurs when the plasma becomes unstable and loses confinement, leading to a rapid cooling of the plasma (\textit{termal quench}) followed by a rapid loss of plasma current (\textit{current quench}). For this project, discharges are classified as either disruptive or non-disruptive.
 
 A \textit{Campaign} is a set of discharges that are analyzed together. For this project, there are three campaigns available, each containing a different number of discharges. The available data for the project is summarized in \autoref{tab:campaigns}. This data is collected from the \ac{JET} tokamak and stored in text files for later analysis.
 
@@ -61,6 +61,12 @@ Anomaly detection in nuclear fusion is crucial for ensuring the safe and efficie
 
 To address this challenge, various machine learning techniques have been applied to analyze the data generated during discharges. These techniques aim to identify patterns and deviations in the data that may indicate potential anomalies. An early detection of these anomalies is essential to prevent disruptions and ensure the stability of the plasma, using gas injection to stop the nuclear fusion reaction before it causes damage to the reactor.
 
+There are two main approaches to anomaly detection in nuclear fusion: neural-network-based models and physical models. Neural networks are trained on historical data to learn the patterns of normal operation, and then used to detect anomalies in real-time data. Physical models, on the other hand, are based on the physics of the plasma and are used to predict the behavior of the plasma under different conditions.
+
+Neural networks have shown promising results in detecting anomalies, but some studies have raised concerns about their reliability and generalization capabilities.\ \textcite[p.~S188]{henderChapter3MHD2007} identify intrinsic limitations of neural-network disruption predictors—most notably, intrinsically poor extrapolation when entering new or expanded operating regimes—and argue that methods intended for a next-step device must rely on a high-quality, well-normalized, multi-machine, dimensionless database. In the same vein, \textcite[p.~2]{murariControlOrientedStrategy2024} report that device-specific ML predictors are typically limited to their tokamak of origin and that their extrapolation to larger, future devices (e.g., \ac{ITER}) is doubtful, owing to differences in scale (stored energy, $I_p$, $\beta_N$), materials and wall conditions, actuator authority, and disruption phenomenology. Taken together, these results imply that models trained solely on historical data from present machines cannot be trusted \emph{a priori} on ITER without cross-machine validation, physics-informed inductive biases, domain adaptation to covariate/concept shift, and calibrated uncertainty quantification.
+
+
+
 \subsection{Introduction to \acs{APODIS}}
 
 \ac{CIEMAT} uses the \ac{APODIS} algorithm, which is based on a \ac{SVM} model trained on historical discharge data.\ \ac{SVM} is a machine learning algorithm whose goal is to find the optimal hyperplane that separates the data into different classes \autocite{6524743}. Further explanation of \ac{SVM} is provided in \autoref{sec:svm}.
@@ -89,6 +95,55 @@ The \ac{APODIS} algorithm uses the signals listed in \autoref{tab:apodis-signals
 \end{table}
 
 The algorithm divides the discharge into windows of 16 milliseconds, and extracts the mean value and the \ac{FFT} of each window. On the prediction phase, the model receives a data stream, and fills a buffer to create a window. Then, it extracts the same features as in the training phase, and predicts the category of this window. If the model predicts an anomalous window, the discharge is classified as anomalous.
+
+The \ac{APODIS} algorithm is a highly effective tool for detecting anomalies. The features extracted from the discharge data allow the model to capture the dynamics of the plasma behavior, that clearly differ between disruptive and non-disruptive discharges, as shown in \autoref{fig:psd}, where x-axis represents the frequency in Hz, and the y-axis represents the power spectral density in dB. The blue line represents the mean value for non-disruptive discharges, and the orange line represents the mean value for disruptive discharges. Scattered points represent the individual values for each disruptive discharge on the last window before the disruption.
+
+\begin{figure}[htbp]
+  \begin{subfigure}{.5\textwidth}
+    \centering
+    \includegraphics[width=.8\linewidth]{psd/psd_channel_01_mean_psd_band_1_250.png}
+    \caption{Plasma Current}
+    \label{fig:psd_channel_01_mean_psd_band_1_250}
+  \end{subfigure}
+  \begin{subfigure}{.5\textwidth}
+    \centering
+    \includegraphics[width=.8\linewidth]{psd/psd_channel_02_mean_psd_band_1_250.png}
+    \caption{Mode Lock Amplitude}
+    \label{fig:psd_channel_02_mean_psd_band_1_250}
+  \end{subfigure}
+  \begin{subfigure}{.5\textwidth}
+    \centering
+    \includegraphics[width=.8\linewidth]{psd/psd_channel_03_mean_psd_band_1_250.png}
+    \caption{Plasma internal inductance}
+    \label{fig:psd_channel_03_mean_psd_band_1_250}
+  \end{subfigure}
+  \begin{subfigure}{.5\textwidth}
+    \centering
+    \includegraphics[width=.8\linewidth]{psd/psd_channel_04_mean_psd_band_1_250.png}
+    \caption{Plasma density}
+    \label{fig:psd_channel_04_mean_psd_band_1_250}
+  \end{subfigure}
+  \begin{subfigure}{.5\textwidth}
+    \centering
+    \includegraphics[width=.8\linewidth]{psd/psd_channel_05_mean_psd_band_1_250.png}
+    \caption{Stored diamagnetic energy time derivative}
+    \label{fig:psd_channel_05_mean_psd_band_1_250}
+  \end{subfigure}
+  \begin{subfigure}{.5\textwidth}
+    \centering
+    \includegraphics[width=.8\linewidth]{psd/psd_channel_06_mean_psd_band_1_250.png}
+    \caption{Radiated Power}
+    \label{fig:psd_channel_06_mean_psd_band_1_250}
+  \end{subfigure}
+  \begin{subfigure}{\textwidth}
+    \centering
+    \includegraphics[width=.6\linewidth]{psd/psd_channel_07_mean_psd_band_1_250.png}
+    \caption{Total Input power}
+    \label{fig:psd_channel_07_mean_psd_band_1_250}
+  \end{subfigure}
+  \caption{Power Spectral Density of the signals used in the \ac{APODIS} algorithm}
+  \label{fig:psd}
+\end{figure}
 
 There are some limitations to this approach. First, a window-based approach does not take into account the temporal dependencies of the data. This means that the model may not be able to capture the dynamics of the plasma behavior over time. Second, \ac{SVM} models with non-linear kernels have a complexity between $O(n^2)$ and $O(n^3)$, where $n$ is the number of training samples. This means that the model may not be able to scale to large datasets \autocite{kekulawalaSupportVectorMachines2024}. Third, even though \ac{SVM} models do not require a balanced dataset, the model could be biased towards the majority class, leading to a high false negative rate \autocite{10.1007/978-3-540-30115-8_7}. This is particularly important in this project, as the number of non-disruptive discharges is much higher than the number of disruptive discharges, as shown in \autoref{tab:campaigns}.
 
