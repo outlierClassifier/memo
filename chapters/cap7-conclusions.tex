@@ -1,2 +1,26 @@
-\chapter{Conclusions and future work} \label{sec:cap7}
-% \noindent En el último apartado de la memoria se ha de incluir una visión general del trabajo realizado: problema propuesto, solución planteada y resultados obtenidos. Junto con esta descripción, también hay que especificar qué conocimiento nuevo se puede derivar de toda la información expuesta en el informe: validez o no del sistema, nuevos aspectos del problema detectados en el trabajo, etc. Finalmente, si el proyecto no deja totalmente cerrado y resuelto el problema tecnológico abordado, el proyectista debe aprovechar su experiencia para proponer líneas futuras de trabajo.
+\chapter{Conclusions and future work}\label{sec:cap7}
+
+\section{Conclusions}
+
+In this work, a machine learning toolkit for anomaly prediction on plasma discharges has been developed. This toolkit consists on an orchestrator and six models--which can be extended in the future with other models. For the communication, the \textit{outlier protocol} specifies how do the models and the orchestrator exchange information.
+
+The management of the machine learning models is centralized on the orchestrator, with implemented functionality to detect online models, train them and make predictions and parse the results. It offers a user-friendly interface throw a frontend, which is exposed on a web page at starting the orchestrator. This frontend also allows users to preview discharges and see the prediction history. 
+
+With this configuration, a review of well-known machine learning models for plasma disruptions is performed. In the analysis, the \ac{APODIS} algorithm is implemented in Rust, and then compared to others, always based on plasma physics. This comparison clearly demonstrates the following points.
+
+First, the \ac{OC-SVM} model with the \ac{APODIS} algorithm features does not achieve the expected performance, as the boundary of the disruptive values is diffuse, and without disruptive examples, the model is not able to correctly classify a discharge. Second, although \ac{SVM} with the \ac{APODIS} algorithm excels at classification and prediction of similar discharges to the training data, the model is not suitable for use in a different tokamak, as the time to train a model with a sufficient number of discharges scales with the number of windows and features, so training with a complete context is not feasible.
+
+Third, decision-tree-based models outperform support vector machines at training time and resource optimization. These lightweight models can be trained with almost unlimited information, without increasing the prediction time, as this is determinated by the tree depth. In this section, the XGBoost model is the fastest model--the one that detects anomalies with higher lead time--and \ac{IForest} the most robust non-deep-learning model--the one that has lower rate of false positives.
+
+Last, on the deep learning models, the custom \ac{CNN} is the most balanced model. It detects anomalies with a higher lead time than \ac{IForest} without having false positives, but with a higher computational cost. \ac{CNN} models have been used for anomaly detection on cross tokamaks, and these model benefices of a rich set of features, including the \ac{APODIS} ones, in combination with physics-informed features, at a cost of higher training times than decision trees. The \ac{LSTM} model also gets a good performance, with a low rate of false positives and a similar lead time than previous models. Although \ac{CNN}s can be used for cross-machine predictions, literature does not mention the training of \ac{LSTM} models with physics-informed features, so it is not guaranteed the consistency of the achieved results on other tokamaks. 
+
+\section{Future works}
+
+The presented design demonstrates that alternatives to the \ac{APODIS} algorithm can be implemented. The design and implementation of an offline predictor have been successfully achieved, and several improvements to this algorithm have been done. With this information, other lines can be explored in the future:
+
+\begin{itemize}
+    \item \textbf{Adaptation of the outlier protocol and models to an online predictor:} The presented project is an offline predictor, and can be used as-it to validate models, but cannot be used to take decisions over online data.
+    \item \textbf{Optimization and implementation of custom models:} This project already benefices for high-optimized libraries, such as \texttt{tensor-flow}, which is mainly written in C++. But most models depend on other python libraries, which can be optimized migrating to high-performance languages.
+    \item \textbf{Integrate the outlier toolkit to \acs{TSN}:} As this system is designed as distributed and relies on HTTP messages, \ac{TSN} can improve the overall performance of the system.
+\end{itemize}
+

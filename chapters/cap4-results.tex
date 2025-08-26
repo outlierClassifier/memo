@@ -14,6 +14,7 @@ The main repositories available on the organization are \autocite{OutlierClassif
     \item \textbf{py\_xgboost:} This repository contains the implementation of the XGBoost model \autocite{OutlierClassifierPy_xgboost2025}.
     \item \textbf{py\_iforest:} This repository contains the implementation of the Isolation Forest model \autocite{OutlierClassifierPy_iforestPython}.
     \item \textbf{py\_cnn\_fft:} This repository contains the implementation of the CNN-FFT model \autocite{OutlierClassifierPy_cnn_fftCNN}.
+    \item \textbf{py\_lstm}: This repository contains the code for the \ac{LSTM} model \todo{ref}
 \end{itemize}
 
 \section{Model Analysis and optimization}
@@ -283,7 +284,84 @@ For disruptive discharges, the model is able to detect the anomalies with a high
 
 Compared to the previous models, the CNN-FFT model detects anomalies with a higher lead time than \ac{IForest}, and with a much lower false positive rate than XGBoost. This robustness is achieved by the physics-informed features, which guarantee similar robustness to the \ac{APODIS} algorithm, but with a much lower training time.
 
-\subsection{Comparison of models}
+\subsection{\acs{OC-SVM}}
+
+This section presents the results \ac{OC-SVM} model, which does not achieve the expected performance, as it is not able to differentiate between disruptive and non-disruptive discharges. This is because the model is trained with a subset of 150 discharges of the C23 campaign, which is not enough to create a clear separation between the two classes, as the \ac{APODIS} features are designed to be used with the \ac{SVM} algorithm, but a downgrade to single class penalizes the performance. To mitigate this issue, a richer set of features shall be used, but that would also increase the training time.
+
+The configuration of the \ac{OC-SVM} model is shown in \autoref{fig:ocsvm-config}, where the \textit{justification threshold} is set to 0, and a \textit{count threshold} of 2 is used.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/ocsvm.png}
+    \caption{\ac{OC-SVM} configuration}
+    \label{fig:ocsvm-config}
+\end{figure}
+
+To illustrate this, \autoref{fig:ocsvm-75223} and \autoref{fig:ocsvm-75581} show the predictions of the \ac{OC-SVM} model for non-disruptive discharges 75223 and 75581, respectively. In both cases, the model triggers alerts, labeling these discharges as anomalous.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/ocsvm/75223.png}
+    \caption{\ac{OC-SVM} prediction for discharge 75223 (non-disruptive)}
+    \label{fig:ocsvm-75223}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/ocsvm/75581.png}
+    \caption{\ac{OC-SVM} prediction for discharge 75581 (non-disruptive)}
+    \label{fig:ocsvm-75581}
+\end{figure}
+
+The predictions of the \ac{OC-SVM} model for disruptive discharges 75273 and 75485 are shown in \autoref{fig:ocsvm-75273} and \autoref{fig:ocsvm-75485}, respectively. Although the model correctly identifies these discharges as anomalous, this results are not meaningful, as the print is similar to the non-disruptive discharges, and the model does not provide any useful information about the discharge behavior.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/ocsvm/75273.png}
+    \caption{\ac{OC-SVM} prediction for discharge 75273 (disruptive)}
+    \label{fig:ocsvm-75273}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/ocsvm/75485.png}
+    \caption{\ac{OC-SVM} prediction for discharge 75485 (disruptive)}
+    \label{fig:ocsvm-75485}
+\end{figure}
+
+\subsection{\acs{LSTM}}
+
+The \ac{LSTM} model is a recurrent neural network that is designed to work with sequential data, such as time series. But \textcite{henderChapter3MHD2007} argue that although neural networks can find patterns in time series data, these patterns are heavily dependent on the origin tokamak. Using physics-informed features might mitigate this issue, although it is not documented in the literature. Furthermore, using the \ac{LSTM} model with the features used in this project does not provide any significant improvement over the previous models, as it is a heavier model that requires more computational resources and training time, but does not achieve better accuracy or lead time values.
+
+The results are presented below, at \autoref{fig:lstm-75223}, \autoref{fig:lstm-75581}, \autoref{fig:lstm-75273} and \autoref{fig:lstm-75485}, where for the discharge 75225 anomaly values are detected, whereas on 75581 results are normal. For the disruptive discharges, both are correctly labeled.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/lstm/75223.png}
+    \caption{\ac{LSTM} prediction for discharge 75223 (non-disruptive)}
+    \label{fig:lstm-75223}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/lstm/75581.png}
+    \caption{\ac{LSTM} prediction for discharge 75581 (non-disruptive)}
+    \label{fig:lstm-75581}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/lstm/75273.png}
+    \caption{\ac{LSTM} prediction for discharge 75273 (disruptive)}
+    \label{fig:lstm-75273}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{results/lstm/75485.png}
+    \caption{\ac{LSTM} prediction for discharge 75485 (disruptive)}
+    \label{fig:lstm-75485}
+\end{figure}
 
 
 

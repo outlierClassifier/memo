@@ -248,8 +248,7 @@ Typical kernels include the linear kernel, the polynomial kernel $K(x,x')={(\lan
 
 Class imbalance is handled by assigning different misclassification costs to the two classes, for example, $C_+$ and $C_-$ in the soft-margin constraints, or by per-sample weights in the primal/dual; this shifts the optimal margin to reflect asymmetric penalties and changes the operating point of the classifier. The raw SVM output $f(x)$ is a signed margin rather than a calibrated posterior probability; if probabilistic scores are required, a monotone post-hoc calibration such as Platt scaling or isotonic regression can be fitted on held-out data.
 
-SVM training solves a convex quadratic program; modern implementations exploit decomposition or SMO-type methods for scalability, and linear SVM solvers are preferred in very high-dimensional sparse settings \autocite{cortesSupportvectorNetworks1995b,scholkopfLearningKernelsSupport2001}.
-%\autocite{cortes1995,scholkopf2002,esl,hsu2003,platt1999}
+SVM training solves a convex quadratic program; modern implementations exploit decomposition or SMO-type methods for scalability, and linear SVM solvers are preferred in very high-dimensional sparse settings \autocite{cortesSupportvectorNetworks1995b,scholkopfLearningKernelsSupport2001}. Because of the high complexity of the dual problem, \ac{SVM}s are not suitable for very large datasets, and their training time scales with the square of the number of samples. However, they are effective in high-dimensional spaces and can handle non-linear decision boundaries through kernelization.
 
 
 \todo{SVM, OC-SVM}

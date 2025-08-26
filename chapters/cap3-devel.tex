@@ -424,6 +424,7 @@ Time-to-event emphasis is introduced through label and sample-weight shaping aro
 
 A complementary spectrogram branch processes $|X_c(\tau,\omega)|$ built with the \ac{STFT} from each channel and concatenated along the channel axis. This design is motivated by the documented contribution of \ac{MHD} spectrogram content to predictive power and by the benefits of spatiotemporal structure on \ac{JET}. In practice, early fusion in the spectro-temporal plane enables band-selective and inter-band filters that track fluctuation growth preceding thermal and current quenches \cite{aymerichMHDSpectrogramContribution2024,aymerichDisruptionPredictionJET2022}. Finally, deployment uses the exported $\tau$ in combination with a per-shot aggregator, in line with the conservative decision logic reported for \ac{APODIS} \cite{dormido-cantoDevelopmentEfficientRealtime2013}.
 
+This deep learning model can be applied to cross-device predictions for disruptions, as \textcite{guoDisruptionPredictionUsing2020} demonstrate for the \ac{EAST} tokamak.
 
 \subsection{Outlier Detection}
 
@@ -434,6 +435,12 @@ normal = [d for d in received_discharges if d.anomalyTime is None]
 \end{lstlisting}
 
 \subsubsection{\acs{OC-SVM}}
+
+The \ac{OC-SVM} model is implemented in Python, using the \texttt{sklearn} library for the model, and the \texttt{fastapi} framework for the API. This model is a variation of the \ac{APODIS} algorithm, using a one-class \ac{SVM} to detect anomalies in the discharge data.
+
+As explained on \autoref{sec:svm}, solving the dual problem is a complex operation which scales with the number of discharges and the number of windows per discharge. For this reason, the model is trained with a subset of the discharges, which may lead to a loss of accuracy.
+
+The \texttt{sklearn} library implements some optimizations that allow to train the model with a larger number of discharges, but it is still not possible to train the model with all the C23 campaigns. Although these optimizations allow to start the training without memory errors, it will never end.
 
 \subsubsection{Isolation Forest}\label{sec:iforest-implementation}
 
@@ -473,5 +480,15 @@ The configuration in \autoref{lst:iforest-config} instantiates the Isolation For
 
 
 
-% \subsubsection{\acs{LSTM}}
+\subsubsection{\acs{LSTM}}
+
+The \ac{LSTM} model is implemented in Python, using the \texttt{tensorflow} library for the model, and the \texttt{fastapi} framework for the API. As \texttt{tensorflow} is used, if a \ac{GPU} is available, it will be used to improve training times.
+
+\textcite[p.~2]{murariControlOrientedStrategy2024} explains that deep learning models are limited to their origin tokamak when they are trained with raw data. For this reason, the model is trained only with physics-informed features, which are extracted from the discharge data, avoiding intrinsic correlations of the origin tokamak.
+
+It is important to note that, although model is trained with plasma-physics features, literature does not specify is the results are applicable for different tokamaks than the original.
+
+The extracted features include locked mode, inner inductance, radiated power, Greenwald fraction, and beta loss. These features are extracted from the discharge data and are used to train the model. 
+
+% The feature extraction logic is shown in \autoref{lst:lstm-features}.
 

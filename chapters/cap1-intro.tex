@@ -1,6 +1,16 @@
 \chapter{Introduction} \label{sec:cap1}
 
-\section{Context and Motivation}
+\section{Context and motivation}
 
-This project has been developed as a final project for the Electronic Engineering degree at the investigation group \ac{I2A2} and belongs to the \ac{ITER} project. The main goal is to create an outlier detection system that can be used to monitor the performance of the \ac{ITER} reactor, ensuring its safe and efficient operation.
+Tokamak plasmas are vulnerable to \emph{disruptions}: rapid losses of thermal energy and plasma current driven by \ac{MHD} instabilities. Beyond terminating the discharge, disruptions impose severe thermo-mechanical loads on plasma-facing components and induce halo currents and electromagnetic forces that scale unfavorably with device size. As next-step machines (e.g., \ac{ITER}) approach operation, actionable lead time for \emph{prediction}, \emph{avoidance}, and, when necessary, reliable \emph{mitigation} (e.g., massive-gas or pellet injection) becomes a first-order requirement for machine protection and high availability.
+
+A modular, protocol-driven ensemble for disruption assessment is presented. The system isolates modeling from orchestration: an HTTP interface (OpenAPI) standardizes health, training, and inference endpoints so that heterogeneous models---implemented in different languages and runtimes---can be composed, versioned, and replaced without altering the orchestrator. This design enables strict resource control (CPU/GPU affinity), reproducible experiments, and late binding of ensemble policies suitable for both batch and streaming scenarios.
+
+The data model mirrors the experimental setup: each discharge comprises seven synchronous diagnostic time series sampled every 2\,ms from shot start until termination or disruption. Non-disruptive discharges are typically longer ($\sim$12k samples) than disruptive ones ($\sim$7k samples), yielding class imbalance (disruptive $\approx$10\%). Preprocessing is causal by construction to close the gap between offline training and real-time use: feature statistics and normalizers are computed online on sliding windows, with no access to future samples. The pipeline supports fixed-length windows for global assessment and rolling windows for early-warning on streams.
+
+Generalization across operating points and across devices is treated as a primary risk. It is well established that data-driven predictors trained on a single device extrapolate poorly to new or expanded regimes; applicability to a next-step device requires well-normalized, multi-machine, dimensionless databases and active control of covariate shift \parencite[p.~S188]{henderChapter3MHD2007}. Recent analyses further question whether device-specific predictors can be directly transferred to larger machines (e.g., \ac{ITER}) without additional physics constraints and domain adaptation. Accordingly, the workflow emphasizes cross-campaign validation, diagnostics of shift, calibrated scoring, and the option to inject physics-aware indicators (e.g., locked-mode alarms, profile anomalies) to improve transportability.
+
+
+\paragraph{Document structure.}
+% Section~\ref{sec:background} reviews disruption phenomenology and MHD precursors relevant to prediction and mitigation. Section~\ref{sec:data} details the dataset, preprocessing, and the causal normalization pipeline. Section~\ref{sec:models} describes the ensemble components and the orchestration protocol. Section~\ref{sec:experiments} presents metrics and results, emphasizing lead time and robustness. Section~\ref{sec:discussion} discusses limitations and cross-device transfer, and Section~\ref{sec:conclusions} concludes.
 

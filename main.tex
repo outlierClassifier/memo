@@ -12,21 +12,21 @@
 \hypersetup{pageanchor=false}
 \begin{titlepage}
     \thispagestyle{empty}
-    \input{chapters/portada}
+    \include{chapters/portada}
 \end{titlepage}
 \pagenumbering{Roman}
 
 \newpage
 % Resumen (obligatorio)
 \begin{abstract}
-    \input{chapters/abstract-sp.tex}
+    \include{chapters/abstract-sp.tex}
 \end{abstract}
 \renewcommand{\abstractname}{Abstract}
 \newpage
 % Abstract (obligatorio)
 \vspace{10cm}
 \begin{abstract}
-    \input{chapters/abstract-en.tex}
+    \include{chapters/abstract-en.tex}
 \end{abstract}
 
 \chapter*{Agradecimientos}
@@ -42,25 +42,25 @@
 \renewcommand{\lstlistlistingname}{List of Listings}
 \lstlistoflistings 
 
-\input{chapters/acronym.tex}
+\include{chapters/acronym.tex}
 
 % Contenidos
 \pagenumbering{arabic}
 
-\input{chapters/cap1-intro.tex}
-\input{chapters/cap2-stateofart.tex}
-\input{chapters/cap3-devel.tex}
-\input{chapters/cap4-results.tex}
-\input{chapters/cap5-budget.tex}
-\input{chapters/cap6-impact.tex}
-\input{chapters/cap7-conclusions.tex}
+\include{chapters/cap1-intro.tex}
+\include{chapters/cap2-stateofart.tex}
+\include{chapters/cap3-devel.tex}
+\include{chapters/cap4-results.tex}
+\include{chapters/cap5-budget.tex}
+\include{chapters/cap6-impact.tex}
+\include{chapters/cap7-conclusions.tex}
 
 \label{sec:bibliografía}
 \printbibliography
 
 \appendix
 \renewcommand{\chaptername}{Appendix}
-\input{apendix/user-manual.tex}
-\input{apendix/campaigns.tex}
+\include{apendix/user-manual.tex}
+\include{apendix/campaigns.tex}
 
 \end{document}
