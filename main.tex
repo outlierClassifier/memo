@@ -17,16 +17,19 @@
 \pagenumbering{Roman}
 
 \newpage
-% Resumen (obligatorio)
-\begin{abstract}
-    \include{chapters/abstract-sp.tex}
-\end{abstract}
-\renewcommand{\abstractname}{Abstract}
 \newpage
-% Abstract (obligatorio)
-\vspace{10cm}
+\newpage
+
+
+\vspace{1cm}
 \begin{abstract}
-    \include{chapters/abstract-en.tex}
+    \input{chapters/abstract-en.tex}
+\end{abstract}
+
+\newpage
+\renewcommand{\abstractname}{Resumen}
+\begin{abstract}
+    \input{chapters/abstract-sp.tex}
 \end{abstract}
 
 \chapter*{Agradecimientos}

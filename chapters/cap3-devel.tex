@@ -24,7 +24,7 @@ The anomaly detection system is composed by independent nodes. There is a centra
 
 \section{Outlier Protocol}
 
-The outlier protocol is a custom protocol based on the OpenAPI specification. It is a simple protocol that describes how the orchestrator interacts with the model nodes, and is based on HTTP messages, which can be grouped into three main categories: \textit{health}, \textit{train}, and \textit{predict}.
+The outlier protocol is a custom protocol based on the OpenAPI specification. It is a simple protocol that describes how the orchestrator interacts with the model nodes, and is based on \ac{HTTP} messages, which can be grouped into three main categories: \textit{health}, \textit{train}, and \textit{predict}.
 
 The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists off trimming the discharge data, removing data before the beginning of the experiment.
 
@@ -159,7 +159,7 @@ The orchestrator is designed to handle multiple models and discharges simultaneo
     \item User uploads training files in the dashboard interface through file input or drag-and-drop
     \item Frontend batches files into groups of 10 discharges to avoid overwhelming the server
     \item Frontend creates metadata containing total discharge count and batch discharge information
-    \item Frontend sends an HTTP POST request to backend's \texttt{/api/train/raw} endpoint with the batch
+    \item Frontend sends an \ac{HTTP} POST request to backend's \texttt{/api/train/raw} endpoint with the batch
     \item Controller receives batch and parses metadata to extract discharge information and file mappings
     \item Controller checks for existing training session or creates new one if none exists
     \item Controller starts a training session, which contacts all enabled models to initialize training
@@ -187,7 +187,7 @@ As explained on the frontend section, to facilitate the prediction process, the 
 
 \section{Outlier Models}\label{sec:models}
 
-Every model node shall implement the outlier protocol in order to communicate with the orchestrator. This means that every model is a microservice implementing a server that exposes the necessary endpoints to the orchestrator. The models can be implemented in any programming language, as long as they can handle HTTP requests and responses. Models in this project are implemented in Python and Rust.
+Every model node shall implement the outlier protocol in order to communicate with the orchestrator. This means that every model is a microservice implementing a server that exposes the necessary endpoints to the orchestrator. The models can be implemented in any programming language, as long as they can handle \ac{HTTP} requests and responses. Models in this project are implemented in Python and Rust.
 
 For compatibility reasons, every model must split discharges in windows of a fixed length (16 points per window). Models are allowed to extract any relevant data from the windows set.
 

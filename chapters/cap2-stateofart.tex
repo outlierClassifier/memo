@@ -250,9 +250,6 @@ Class imbalance is handled by assigning different misclassification costs to the
 
 SVM training solves a convex quadratic program; modern implementations exploit decomposition or SMO-type methods for scalability, and linear SVM solvers are preferred in very high-dimensional sparse settings \autocite{cortesSupportvectorNetworks1995b,scholkopfLearningKernelsSupport2001}. Because of the high complexity of the dual problem, \ac{SVM}s are not suitable for very large datasets, and their training time scales with the square of the number of samples. However, they are effective in high-dimensional spaces and can handle non-linear decision boundaries through kernelization.
 
-
-\todo{SVM, OC-SVM}
-
 \subsubsection{Convolutional Neural Networks}\label{sec:cnn}
 
 \ac{CNN} are deep architectures that learn local filters shared across time, forming hierarchical feature extractors well suited to multichannel tokamak diagnostics. Their key inductive bias is translation equivariance: a precursor with the same local morphology is detected regardless of its absolute time within a discharge, which is desirable for early identification of \ac{MHD} activity.
