@@ -1,15 +1,25 @@
 \chapter{Impact} \label{sec:cap6}
 
-%En este capítulo el estudiante pondrá de manifiesto las implicaciones sociales, de salud y seguridad, ambientales, económicas, tecnológicas o industriales que estén relacionadas son su trabajo, así como la posible aportación a los ODS (Objetivos de Desarrollo Sostenible.
+\noindent This chapter describes the social, health and safety, environmental, economic, technological, and industrial implications associated with the work carried out in this project, and analyzes its potential contribution to the \ac{SDG} of the \ac{UN}.
 
-% Referencias útiles para elaborar este capítulo:
-% \begin{itemize}
-%     \item Naciones Unidas. Objetivos de Desarrollo Sostenible. Online: https://www.un.org/sustainabledevelopment/es/objetivos-de-desarrollo-sostenible/
-%     \item Fernández Aller, Celia; Miñano, Rafael. "Guía para trabajar la Responsabilidad Social y Ambiental (GRSA)". ETSI Sistemas Informáticos, UPM. (Versión 2.0 Mayo 2015). Online: 
-    
-%     \href{https://oa.upm.es/35542/1/Guia_Responsabilidad_Social_y_Ambiental-V2-1.pdf}{https://oa.upm.es/35542/1/Guia\_Responsabilidad\_Social\_y\_Ambiental-V2-1.pdf}
-%     \begin{itemize}
-%         \item Páginas especialmente útiles para estudiantes de PFG: 31 a 40.
-%     \end{itemize}
-% \end{itemize}
+\section{Project Context}
 
+Within the technology sector, the project is positioned at the intersection of data engineering and applied machine learning for high-reliability, real-time decision support in magnetic-confinement fusion. Specifically, it targets disruption assessment in tokamaks by means of a protocol-driven ensemble orchestrated through a standardized \ac{HTTP}/OpenAPI interface, enabling interchangeable models and reproducible pipelines. The work is conducted in an academic and research setting and focuses on improving machine protection and operational availability by delivering early warnings and structured evidence to control-room workflows. From a life-cycle perspective, the outcome is software: it requires no extraction of physical resources, no physical packaging, and is distributable over the Internet. Computational requirements are bounded and tracked; training and inference are optimized to reduce energy footprint through efficient windowing, batch processing, and judicious use of accelerators.
+
+The stakeholder landscape includes plasma physicists and control engineers (who integrate predictive signals into interlocks and supervisory control), facility operators and machine-protection teams (who benefit from reduced unplanned downtime and damage risk), diagnostic and data-systems groups (who gain standardized interfaces), and, in the longer term, the fusion industry and public funders seeking higher availability and safety.
+
+\section{Ethical Considerations}
+
+The system addresses a safety-critical use case. As such, model outputs must be accompanied by calibrated confidence and auditable justifications; human oversight and established interlock policies remain central in any deployment. Data governance covers confidentiality of machine-operational data, secure handling of logs and metadata, and strict separation between development and operations. Reproducibility is ensured via versioned datasets, deterministic preprocessing, and pinned software artifacts. Claims about performance are restricted to the validated operating domain; external validity (e.g., cross-device transfer) is not assumed and is explicitly documented. The work avoids any functionality that could weaken existing safety barriers; failure modes (false positives/negatives, latency overruns) are analyzed and communicated to operators. Where collaboration involves multiple institutions, data-sharing agreements and citation/attribution norms are respected.
+
+\section{Social, Environmental, and Economic Implications}
+
+\textbf{Social and health \& safety.} Improving the timeliness and reliability of disruption assessment supports safer operation of fusion experiments, protecting personnel and infrastructure and reducing the likelihood of high-load events on plasma-facing components. The standardization of interfaces and artifacts facilitates training for control-room staff and fosters knowledge transfer across laboratories.
+
+\textbf{Environmental.} By contributing to safer, more available operation of fusion devices, the project aligns with long-term goals for clean energy research. While the software has a modest computational footprint relative to experimental operations, energy use during training and inference is monitored and minimized through efficient data handling and hardware utilization.
+
+\textbf{Economic and industrial.} Reducing unplanned terminations and hardware stress can lower maintenance costs and increase experimental throughput. The protocol-first design de-risks integration, shortens iteration cycles for new predictors, and supports a clearer path to technology transfer, benefiting vendors and facilities through interoperable components and reduced vendor lock-in.
+
+\section{Contribution to the \acs{SDG}}
+
+The project contributes to \ac{SDG}~7 by advancing research infrastructure that underpins the development of affordable and clean energy; to \ac{SDG}~9 by promoting resilient research infrastructure, interoperable software, and innovation in safety-critical analytics; and to \ac{SDG}~13 by enabling more reliable scientific campaigns that inform climate-relevant energy pathways. It also supports \ac{SDG}~4 by producing reproducible educational artifacts (datasets, protocols, and benchmarks) that enhance training for students and early-career researchers.
