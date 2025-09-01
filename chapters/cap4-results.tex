@@ -6,16 +6,51 @@ This chapter presents the results obtained from the implemented models, includin
 
 This project uses git to handle different versions. As multiple software has been developed in this project, a GitHub Organization has been created in order to ease the cloning process.
 
-The main repositories available on the organization are \autocite{OutlierClassifier}:
+The main repositories available on the organization are described on \autoref{tab:github-organization}:
 
-\begin{itemize}
-    \item \textbf{Outlier orchestrator:} This repository contains the orchestrator explained at \autoref{sec:orchestrator} \autocite{OutlierClassifierOutlier_orchestrator2025a}.
-    \item \textbf{SVM:} This repository contains the implementation of the \ac{APODIS} algorithm in Rust, which is used as a starting point for comparison with other models \autocite{OutlierClassifierSvm2025}.
-    \item \textbf{py\_xgboost:} This repository contains the implementation of the XGBoost model \autocite{OutlierClassifierPy_xgboost2025}.
-    \item \textbf{py\_iforest:} This repository contains the implementation of the Isolation Forest model \autocite{OutlierClassifierPy_iforestPython}.
-    \item \textbf{py\_cnn\_fft:} This repository contains the implementation of the CNN-FFT model \autocite{OutlierClassifierPy_cnn_fftCNN}.
-    \item \textbf{py\_lstm}: This repository contains the code for the \ac{LSTM} model \todo{ref}
-\end{itemize}
+\begin{table}[htbp]
+    \centering
+    \caption{Repositories in the project's GitHub Organization \autocite{OutlierClassifier}}
+    \label{tab:github-organization}
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabularx}{\textwidth}{@{} l >{\raggedright\arraybackslash}X l l @{}}
+        \toprule
+        \textbf{Repository} & \textbf{Role / Scope} & \textbf{Language} & \textbf{Reference} \\
+        \midrule
+        \texttt{outlier\_orchestrator} &
+        Protocol-driven orchestrator; standardized OpenAPI endpoints. &
+        JavaScript &
+        \autocite{OutlierClassifierOutlier_orchestrator2025a} \\
+        
+        \texttt{svm} &
+        \ac{APODIS} baseline reimplementation for comparative benchmarking. &
+        Rust &
+        \autocite{OutlierClassifierSvm2025} \\
+        \texttt{py\_xgboost} &
+        Gradient-boosted trees for supervised disruption assessment. &
+        Python &
+        \autocite{OutlierClassifierPy_xgboost2025} \\
+        
+        \texttt{py\_iforest} &
+        Isolation Forest for unsupervised anomaly detection. &
+        Python &
+        \autocite{OutlierClassifierPy_iforestPython} \\
+        
+        \texttt{py\_cnn\_fft} &
+        Enhanced \ac{APODIS} features for a \ac{CNN} model. &
+        Python &
+        \autocite{OutlierClassifierPy_cnn_fftCNN} \\
+        
+        \texttt{py\_lstm} &
+        Plasma physics deep learning based model. &
+        Python &
+        \\[2pt]
+        \addlinespace
+        \multicolumn{4}{@{}l@{}}{\footnotesize \textit{Common features:} shared OpenAPI endpoints \texttt{/health}, \texttt{/train}, \texttt{/predict}} \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
 
 \section{Model Analysis and optimization}
 
