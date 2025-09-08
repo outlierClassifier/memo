@@ -175,18 +175,9 @@
     {ñ}{{\~n}}1 {Ñ}{{\~N}}1
 }
 
-% \usepackage{tocloft}
-
-% \setlength{\cftbeforefigskip}{0pt}
-% \setlength{\cftbeforetabskip}{0pt}
-
-
-% \usepackage{etoolbox}
-
-% \makeatletter
-% \patchcmd{\l@figure}{\addvspace{10\p@}}{}{}{}
-% \patchcmd{\l@table}{\addvspace{10\p@}}{}{}{}
-% \makeatother
-
-% \usepackage{latexsym} 
-% \usepackage[none]{hyphenat}
+\newcommand{\blankpagecounted}{%
+  \clearpage
+  \thispagestyle{empty}%
+  \null
+  \newpage
+}
