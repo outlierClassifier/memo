@@ -4,8 +4,7 @@ This chapter describes the development of the anomaly detection system, which ai
 
 \section{Data provided by \acs{CIEMAT}}
 
-When a discharge experiment is performed, several data is collected from the plasma. This data is collected by sensors that measure different parameters, and stored in text files for later usage.
-
+When a discharge diagnostic is performed, several data is collected from the plasma. This data is collected by sensors that measure different parameters, and stored in text files for later usage.
 
 
 This project uses the discharges provided by \ac{CIEMAT}, which are organized in Campaigns. For consistent comparison, C23 is used for training and C24 is used for validation.
@@ -13,11 +12,13 @@ This project uses the discharges provided by \ac{CIEMAT}, which are organized in
 
 \section{System Design}
 
-The anomaly detection system is composed by independent nodes. There is a central node that orchestrates the system, and several nodes that implement the anomaly detection models. Each model node works as a microservice and is responsible for training and predicting anomalies using its own algorithm. The central node is responsible for managing the data flow between the model nodes and the outlier protocol. The system design is shown in \autoref{fig:system-design}.
+The anomaly detection system is composed by independent nodes. There is a central node that orchestrates the system, and several nodes that implement the anomaly detection models. Each model node works as a microservice and is responsible for training and predicting anomalies using its own algorithm, which means that this is a modular and distributed system, where each model can be developed and deployed independently on different machines if needed.
+
+The central node is responsible for managing the data flow between the model nodes and the outlier protocol. The system design is shown in \autoref{fig:system-design}.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{system-arch.png}
+    \includegraphics[width=\textwidth]{system-arch-high_res.png}
     \caption{Anomaly detection system design}
     \label{fig:system-design}
 \end{figure}
@@ -26,7 +27,7 @@ The anomaly detection system is composed by independent nodes. There is a centra
 
 The outlier protocol is a custom protocol based on the OpenAPI specification. It is a simple protocol that describes how the orchestrator interacts with the model nodes, and is based on \ac{HTTP} messages, which can be grouped into three main categories: \textit{health}, \textit{train}, and \textit{predict}.
 
-The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists off trimming the discharge data, removing data before the beginning of the experiment.
+The current implementation is based on offline data, and a preprocessing is required in order to transform real data to the model's accepted one. This preprocessing consists off trimming the discharge data, removing data before the beginning of the diagnostic.
 
 \subsection{Health}
 
@@ -345,7 +346,7 @@ def extract_features(window: list[float]) -> np.ndarray:
             all_features.append(prev_window_features)
 \end{lstlisting}
 
-The necessary parameters to create an XGBoost model with the \texttt{xgboost} library are shown on \autoref{lst:xgboost-params}. These parameters are set to values that have been tested and work well for the project, but they can be modified to improve the model's performance. The \texttt{tree\_method} is set to \texttt{hist} to use a histogram-based algorithm, which is faster and more memory-efficient than the default \texttt{exact} method\todo{Ref}. The \texttt{n\_jobs} parameter is set to -1 to use all available CPU cores for training. The \texttt{objective} is set to \texttt{binary:logistic} for binary classification, and the evaluation metric is set to \texttt{aucpr} (area under the precision-recall curve) for better performance in imbalanced datasets, like the given ones.
+The necessary parameters to create an XGBoost model with the \texttt{xgboost} library are shown on \autoref{lst:xgboost-params}. These parameters are set to values that have been tested and work well for the project, but they can be modified to improve the model's performance. The \texttt{tree\_method} is set to \texttt{hist} to use a histogram-based algorithm, which is faster and more memory-efficient than the default \texttt{exact} method. The \texttt{n\_jobs} parameter is set to -1 to use all available CPU cores for training. The \texttt{objective} is set to \texttt{binary:logistic} for binary classification, and the evaluation metric is set to \texttt{aucpr} (area under the precision-recall curve) for better performance in imbalanced datasets, like the given ones.
 
 \begin{lstlisting}[language=Python, caption={XGBoost model parameters}, label={lst:xgboost-params}]
     params = {
@@ -389,7 +390,7 @@ This helps the model to learn better from the minority class and improve its per
 
 \subsubsection{\acs{CNN} pipeline}\label{sec:cnn-implementation}
 
-This model implements a \ac{CNN} pipeline for anomaly detection, which is inspired by the \ac{APODIS} algorithm. It uses the \ac{FFT} idea introduced by \ac{APODIS}, but extends it with inter-signal features. This can be done because \ac{CNN}s scalability is better than SVM one \todo{ref}.\ \autoref{lst:inter-signal-features} shows the feature extraction logic, which computes a set of physics-informed descriptors that summarize key ratios and cross-diagnostic evolution that intensify before disruptions: radiated-to-input power fraction, Greenwald fraction, loop-voltage and internal inductance normalized by plasma current, energy-loss rate versus input power, cross-channel dispersion, a log-energy measure, and short-term deltas of selected ratios.
+This model implements a \ac{CNN} pipeline for anomaly detection, which is inspired by the \ac{APODIS} algorithm. It uses the \ac{FFT} idea introduced by \ac{APODIS}, but extends it with inter-signal features. This can be done because \ac{CNN}s scalability is better than SVM one.\ \autoref{lst:inter-signal-features} shows the feature extraction logic, which computes a set of physics-informed descriptors that summarize key ratios and cross-diagnostic evolution that intensify before disruptions: radiated-to-input power fraction, Greenwald fraction, loop-voltage and internal inductance normalized by plasma current, energy-loss rate versus input power, cross-channel dispersion, a log-energy measure, and short-term deltas of selected ratios.
 
 \begin{lstlisting}[language=Python, caption={Inter-signal feature vector used for early coupling and trend capture.}, label={lst:inter-signal-features}]
 def inter_signal_features(win_raw, prev_logs):

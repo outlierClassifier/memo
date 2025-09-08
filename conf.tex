@@ -47,6 +47,30 @@
     allcolors=black
 ]{hyperref}
 
+\makeatletter
+% Define \Autoref to capitalize the names of the elements it references
+\DeclareRobustCommand{\Autoref}[1]{%
+  \begingroup
+    % Capitaliza localmente los nombres que usa \autoref:
+    \def\partautorefname{Part}%
+    \def\chapterautorefname{Chapter}%
+    \def\sectionautorefname{Section}%
+    \def\subsectionautorefname{Subsection}%
+    \def\subsubsectionautorefname{Subsection}%
+    \def\paragraphautorefname{Paragraph}%
+    \def\subparagraphautorefname{Paragraph}%
+    \def\appendixautorefname{Appendix}%
+    \def\pageautorefname{Page}%
+    \def\figureautorefname{Figure}%
+    \def\tableautorefname{Table}%
+    \def\equationautorefname{Equation}%
+    \def\Itemautorefname{Item}%
+    \autoref{#1}%
+  \endgroup
+}
+\makeatother
+
+
 % Bibliography management packages
 \usepackage[style=ieee]{biblatex}
 \DeclareFieldFormat{howpublished}{\url{#1}}
