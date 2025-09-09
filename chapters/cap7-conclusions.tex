@@ -20,7 +20,7 @@ The presented design demonstrates that alternatives to the \ac{APODIS} algorithm
 
 \begin{itemize}
     \item \textbf{Adaptation of the outlier protocol and models to an online predictor:} The presented project is an offline predictor, and can be used as-it to validate models, but cannot be used to take decisions over online data.
-    \item \textbf{Optimization and implementation of custom models:} This project already benefices for high-optimized libraries, such as \texttt{tensor-flow}, which is mainly written in C++. But most models depend on other python libraries, which can be optimized migrating to high-performance languages.
+    \item \textbf{Optimization and implementation of custom models:} This project already benefices for high-optimized libraries, such as \texttt{tensor-flow}, which is mainly written in C++. But most models depend on other python libraries, which can be optimized migrating to high-performance languages and heterogeneous hardware, as \ac{FPGA} or \ac{GPU}.
     \item \textbf{Integrate the outlier toolkit with deterministic timing networks:} Given the distributed design and reliance on timestamped HTTP messages, adopting sub-nanosecond (\emph{White Rabbit}) or sub-microsecond (IEEE~1588 \ac{PTP}) synchronization improves end-to-end determinism, event ordering, and trigger alignment for mitigation actions under load.
 
 \end{itemize}
